@@ -1,5 +1,7 @@
 # StratTome
 
+The circular map emblem replaces the “o” in the home-screen wordmark and serves as the configured app icon. The transparent PNG is `assets/strattome-map-icon.png`; its generation prompt is recorded alongside it. Reload to update the wordmark; rebuilding the APK updates the Android launcher icon.
+
 Android-first Expo development-build app for importing and reading walkthroughs offline. Includes a locally bundled manual font, a purple molded-panel theme, system/manual color modes, SQLite library and progress, text/HTML imports, full-guide search, a constructed TOC, and local WebView pagination.
 
 ## Run

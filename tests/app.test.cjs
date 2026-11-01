@@ -134,6 +134,7 @@ function appHarness(options = {}) {
       },
     },
     "./assets/ManualMono.ttf": 1,
+    "./assets/strattome-map-icon.png": 2,
     "./src/storage": {
       library: async () => [...libraryRows],
       renameGuide: async (id, name) => {

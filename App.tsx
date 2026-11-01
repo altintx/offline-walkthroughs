@@ -932,7 +932,53 @@ function WalkthroughApp() {
         <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
           {!libraryAction && (!showImport || rows.length === 0) ? (
             <>
-              {heading("StratTome")}
+              <View
+                accessible
+                accessibilityRole="header"
+                accessibilityLabel="StratTome"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "baseline",
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                }}
+              >
+                <Text
+                  accessible={false}
+                  style={{
+                    color: colors.text,
+                    fontFamily: theme.font,
+                    fontSize: 34,
+                    lineHeight: 44,
+                    fontWeight: "bold",
+                  }}
+                >
+                  StratT
+                </Text>
+                <Image
+                  accessible={false}
+                  source={require("./assets/strattome-map-icon.png")}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    marginHorizontal: 1,
+                    transform: [{ translateY: 3 }],
+                  }}
+                  resizeMode="contain"
+                />
+                <Text
+                  accessible={false}
+                  style={{
+                    color: colors.text,
+                    fontFamily: theme.font,
+                    fontSize: 34,
+                    lineHeight: 44,
+                    fontWeight: "bold",
+                  }}
+                >
+                  me
+                </Text>
+              </View>
               {!libraryAction &&
                 rows.map((r) =>
                   button(

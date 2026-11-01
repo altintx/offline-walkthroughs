@@ -25,6 +25,7 @@
         "projectId": "b326905e-c62d-4ffb-8bc5-90515ca1846a"
       }
     },
-    "owner": "altintx"
+    "owner": "altintx",
+    "icon": "./assets/strattome-map-icon.png"
   }
 }
