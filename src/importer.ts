@@ -8,6 +8,7 @@ import {
   validateImport,
 } from "./core.cjs";
 import { Guide, saveGuide } from "./storage";
+import { cacheArtwork, downloadImage } from "./artwork";
 function checkAbort(signal: AbortSignal) {
   if (signal.aborted) {
     const e = new Error("Import cancelled");
@@ -35,18 +36,6 @@ export type Stage = {
 export function discardStage(stage: Stage) {
   const dir = new Directory(stage.directory);
   if (dir.exists) dir.delete();
-}
-async function download(url: string, destination: File, signal: AbortSignal) {
-  if (new URL(url).protocol !== "https:")
-    throw Error("Only HTTPS images are supported");
-  const r = await fetch(url, { signal });
-  if (!r.ok) throw Error(`HTTP ${r.status}`);
-  if (!r.headers.get("content-type")?.startsWith("image/"))
-    throw Error("Not an image");
-  const bytes = new Uint8Array(await r.arrayBuffer());
-  checkAbort(signal);
-  destination.write(bytes);
-  return destination.uri;
 }
 function adapter(html: string, url: string) {
   const doc = parseDocument(html),
@@ -152,7 +141,7 @@ export async function stageImport(
     for (const [i, url] of [...new Set(stage.images)].entries()) {
       checkAbort(signal);
       try {
-        const uri = await download(
+        const uri = await downloadImage(
           url,
           new File(directory, `image-${i}`),
           signal,
@@ -173,10 +162,13 @@ export async function commitImport(
   stage: Stage,
   accept: boolean,
   signal: AbortSignal,
+  resetProgress = false,
+  displayTitle?: string,
 ) {
   validateImport(stage, accept);
   checkAbort(signal);
   const g = makeGuide(stage.title, stage.files) as Guide;
+  if (displayTitle) g.title = displayTitle;
   const dir = new Directory(Paths.document, "guides", g.id);
   dir.create({ intermediates: true, idempotent: true });
   const created: File[] = [];
@@ -200,7 +192,7 @@ export async function commitImport(
       ...stage.missing.map((x) => "Missing content accepted: " + x),
     );
     checkAbort(signal);
-    await saveGuide(g);
+    await saveGuide(g, resetProgress);
   } catch (e) {
     for (const file of created) if (file.exists) file.delete();
     throw e;
@@ -213,39 +205,15 @@ export async function commitImport(
   return g;
 }
 
-export async function artwork(query: string) {
-  const u =
-    "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&gsrsearch=" +
-    encodeURIComponent(query);
-  const response = await fetch(u);
-  if (!response.ok) throw Error(`Artwork lookup: HTTP ${response.status}`);
-  const data = await response.json();
-  return Object.values(data.query?.pages || {}) as any[];
-}
 export async function stageArtwork(
   stage: Stage,
   item: any,
   signal: AbortSignal,
 ) {
-  const info = item.imageinfo[0],
-    file = new File(new Directory(stage.directory), "cover");
-  const uri = await download(info.url, file, signal);
-  const attribution = artworkAttribution(item);
-  return { ...stage, artwork: { uri, attribution } };
-}
-
-export function artworkAttribution(item: any) {
-  const info = item.imageinfo[0];
-  const metadata = info.extmetadata || {};
-  const plain = (s: string) => DomUtils.textContent(parseDocument(s || ""));
-  return [
-    item.title,
-    plain(metadata.Artist?.value),
-    plain(metadata.Credit?.value),
-    plain(metadata.LicenseShortName?.value),
-    metadata.LicenseUrl?.value,
-    info.descriptionurl,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const file = new File(
+    new Directory(stage.directory),
+    `cover-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  const selection = await cacheArtwork({ item }, file, signal);
+  return { ...stage, artwork: selection };
 }

@@ -9,3 +9,4 @@ android/
 credentials.json
 test-results/
 playwright-report/
+fixtures/

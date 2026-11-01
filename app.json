@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Offline Walkthroughs",
-    "slug": "offline-walkthroughs",
+    "name": "StratTome",
+    "slug": "offline-game-manuals",
     "version": "0.1.0",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
@@ -19,6 +19,12 @@
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b326905e-c62d-4ffb-8bc5-90515ca1846a"
+      }
+    },
+    "owner": "altintx"
   }
 }

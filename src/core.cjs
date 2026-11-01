@@ -4,26 +4,312 @@ function hash(s) {
   for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   return (h >>> 0).toString(36);
 }
-function plainBlocks(text) {
+function separateTextArtwork(input) {
+  const lines = input.split("\n"),
+    original = [...lines],
+    inserts = new Map(),
+    special = [];
+  const marker = (block) => {
+    const index = special.push(block) - 1;
+    return `\uE000layout-${index}\uE001`;
+  };
+  const insert = (at, block) => {
+    const list = inserts.get(at) || [];
+    list.push(marker(block));
+    inserts.set(at, list);
+  };
+  // Rectangular callouts may occupy the left or right half of prose lines.
+  // Read that prose down the page, and keep the artwork as its own block.
+  const masks = new Map();
+  const near = (actual, expected) => Math.abs(actual - expected) <= 4;
+  for (let i = 0; i < original.length; i++) {
+    const top = /_{4,} {1,3}_{4,}|\+[-=]{3,}\+/g;
+    for (const match of original[i].matchAll(top)) {
+      const start = match.index,
+        end = start + match[0].length;
+      const spans = [{ line: i, start, end }];
+      let bottom = -1;
+      for (let j = i + 1; j < Math.min(original.length, i + 16); j++) {
+        const line = original[j];
+        const closing = [...line.matchAll(/[¯‾_]{4,}|\+[-=]{3,}\+/g)].find(
+          (m) =>
+            near(m.index, start + (match[0][0] === "+" ? 0 : 2)) &&
+            near(m.index + m[0].length, end),
+        );
+        if (closing && spans.length >= 2) {
+          spans.push({
+            line: j,
+            start: closing.index,
+            end: closing.index + closing[0].length,
+          });
+          bottom = j;
+          break;
+        }
+        const bars = [...line.matchAll(/\|/g)].map((m) => m.index);
+        const left = bars.find((index) => near(index, start));
+        const right = bars.filter((index) => near(index + 1, end)).at(-1);
+        const corner = [...line.matchAll(/['’]\\/g)].find((m) =>
+          near(m.index, start),
+        );
+        const from = corner?.index ?? left;
+        if (from === undefined || right === undefined || right <= from) break;
+        spans.push({ line: j, start: from, end: right + 1 });
+      }
+      if (bottom < 0) continue;
+      const outside = spans.map((span) =>
+        [
+          original[span.line].slice(0, span.start).trim(),
+          original[span.line].slice(span.end).trim(),
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+      const hasOutsideText = outside.some((line) => /[A-Za-z0-9]/.test(line));
+      // The paired underscore roof is the FAQ's item-found callout. Plain
+      // tiny +---+ diagrams stay with the generic fixed-width parser.
+      if (
+        match[0].startsWith("+") &&
+        !hasOutsideText &&
+        !spans.some(
+          (span) =>
+            original[span.line]
+              .slice(span.start, span.end)
+              .trim()
+              .split(/\s+/)
+              .filter((word) => /[A-Za-z]{2,}/.test(word)).length >= 2,
+        )
+      )
+        continue;
+      const origin = Math.min(...spans.map((span) => span.start));
+      const art = spans
+        .map(
+          (span) =>
+            " ".repeat(span.start - origin) +
+            original[span.line].slice(span.start, span.end),
+        )
+        .join("\n");
+      for (const span of spans) {
+        const row = masks.get(span.line) || [];
+        row.push(span);
+        masks.set(span.line, row);
+      }
+      let after = bottom + 1;
+      while (
+        hasOutsideText &&
+        after < original.length &&
+        original[after].trim()
+      )
+        after++;
+      insert(after, { kind: "pre", text: art, level: 0 });
+    }
+  }
+  for (const [index, spans] of masks) {
+    let cursor = 0;
+    const prose = [];
+    for (const span of spans.sort((a, b) => a.start - b.start)) {
+      if (span.start > cursor)
+        prose.push(original[index].slice(cursor, span.start));
+      cursor = Math.max(cursor, span.end);
+    }
+    prose.push(original[index].slice(cursor));
+    lines[index] = prose
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(" ");
+  }
+  // Underlined place/item labels are headings, not ASCII fragments in prose.
+  for (let i = 0; i + 2 < lines.length; i++) {
+    if (
+      !/^\s*[-=_¯‾~]{6,}\s*$/.test(lines[i]) ||
+      !/^\s*[-=_¯‾]{4,}\s*$/.test(lines[i + 2])
+    )
+      continue;
+    const title = lines[i + 1].trim();
+    if (
+      !/[A-Za-z]/.test(title) ||
+      title.length > 80 ||
+      /[|/\\]/.test(title) ||
+      title.split(/\s+/).length > 9
+    )
+      continue;
+    lines[i] = "";
+    lines[i + 1] = marker({
+      kind: "heading",
+      text: title,
+      level: 3,
+      toc: false,
+    });
+    lines[i + 2] = "";
+  }
+  const output = [];
+  for (let i = 0; i <= lines.length; i++) {
+    for (const value of inserts.get(i) || []) output.push("", value, "");
+    if (i < lines.length) output.push(lines[i]);
+  }
+  return { text: output.join("\n"), special };
+}
+function plainBlocks(input) {
+  const { text, special } = separateTextArtwork(input.replace(/\r/g, ""));
+  const contents = new Map();
+  const untagged = [];
+  // FAQ authors commonly link their contents to bracketed labels in banners.
+  for (const line of text.split("\n")) {
+    const m = line.match(
+      /^\s*((?:[IVXLCDM]+|\d+|[a-z])[.)])\s+(.+?)\s*\.{2,}\s*\[([\w-]+)\]\s*$/,
+    );
+    const parent = line.match(
+      /^\s*((?:[IVXLCDM]+|[a-z])[.)])\s+([A-Za-z][A-Za-z &/-]+)\s*$/,
+    );
+    if (parent)
+      untagged.push({
+        title: `${parent[1]} ${parent[2].trim()}`,
+        name: parent[2].trim(),
+        level: /^[a-z]/.test(parent[1]) ? 2 : 1,
+      });
+    if (m)
+      contents.set(m[3], {
+        title: `${m[1]} ${m[2].trim()}`,
+        level: /^[a-z]/.test(m[1]) ? 2 : 1,
+      });
+  }
   return text
-    .replace(/\r/g, "")
     .split(/\n[ \t]*\n/)
-    .filter(Boolean)
-    .map((text) => {
+    .filter((part) => part.trim())
+    .flatMap((part) => {
+      // Some FAQs put banners directly between paragraphs without blank lines.
+      // Split only recognized banners, preserving all surrounding prose.
+      const lines = part.split("\n"),
+        spans = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (/[a-z]/.test(lines[i]) || /\.{2,}\s*\[[\w-]+\]/.test(lines[i]))
+          continue;
+        const letters = lines[i].replace(/[^A-Z0-9]/g, "");
+        const tagged = [...contents.keys()].some((tag) =>
+          lines[i].includes(`[${tag}]`),
+        );
+        const named = untagged.some(
+          (entry) =>
+            letters === entry.name.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+        );
+        if (!tagged && !named) continue;
+        let start = i,
+          end = i + 1;
+        while (start > 0 && !/[a-z]/.test(lines[start - 1])) start--;
+        while (end < lines.length && !/[a-z]/.test(lines[end])) end++;
+        if (!spans.some((span) => span.start <= start && span.end >= end))
+          spans.push({ start, end });
+      }
+      const out = [];
+      let cursor = 0;
+      for (const { start, end } of spans) {
+        if (start > cursor) out.push(lines.slice(cursor, start).join("\n"));
+        out.push(lines.slice(start, end).join("\n"));
+        cursor = end;
+      }
+      if (cursor < lines.length) out.push(lines.slice(cursor).join("\n"));
+      return out.filter((value) => value.trim());
+    })
+    .map((part) => {
+      const layout = part.trim().match(/^\uE000layout-(\d+)\uE001$/);
+      if (layout) return special[Number(layout[1])];
+      const originalLines = part.split("\n");
+      // Only a stand-alone banner may resolve a TOC label. A reference in prose
+      // or in the original contents must not become a destination.
+      if (!/\.{2,}\s*\[[\w-]+\]/.test(part) && !/[a-z]/.test(part)) {
+        for (const [tag, entry] of contents) {
+          if (part.includes(`[${tag}]`))
+            return {
+              kind: "heading",
+              text: entry.title,
+              level: entry.level,
+              sourceIds: [tag],
+            };
+        }
+      }
+      if (!/[a-z]/.test(part) && !/\.{2,}/.test(part)) {
+        const letters = part.replace(/[^A-Z0-9]/g, "");
+        const entry = untagged.find(
+          (entry) =>
+            letters === entry.name.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+        );
+        if (entry)
+          return { kind: "heading", text: entry.title, level: entry.level };
+      }
+      // A frame around prose is decoration, not a fixed-width map. Remove only
+      // its border; keep every word inside it.
+      const lines = originalLines.map((line) => {
+        const frame = line.match(/^\s*\|\s?(.*?)\s*\|\s*$/);
+        return frame &&
+          frame[1].split(/\s+/).filter((word) => /[a-z]{2,}/.test(word))
+            .length >= 4
+          ? frame[1]
+          : line;
+      });
+      const value = lines.join("\n");
+      const nonempty = lines.filter((line) => line.trim());
+      const artLines = nonempty.filter((line) => {
+        const compact = line.replace(/\s/g, "");
+        const symbols = compact.replace(/[\p{L}\p{N}.,'’!?():;]/gu, "").length;
+        return (
+          !/^#{1,6} /.test(line.trim()) &&
+          !/[a-z]/.test(line) &&
+          compact.length > 2 &&
+          symbols / compact.length > 0.35
+        );
+      });
+      const table =
+        nonempty.length > 1 &&
+        nonempty.every((line) => {
+          const cells = line.trim().split(/ {3,}|\t+/);
+          return (
+            cells.length > 1 &&
+            cells.every((cell) => cell.length < 25) &&
+            line.trim().split(/\s+/).length < 9
+          );
+        }) &&
+        nonempty.some((line) => /(?: {3,}|\t+)\d/.test(line));
+      const prose = nonempty.some(
+        (line) =>
+          line.split(/\s+/).filter((word) => /[a-z]{2,}/.test(word)).length >=
+          4,
+      );
+      const fields = nonempty.filter((line) =>
+        /^\s*[A-Z][A-Za-z ]+:/.test(line),
+      );
+      const metadata =
+        fields.length >= 2 ||
+        (fields.length > 0 && nonempty.some((line) => /^\s*[-*•] /.test(line)));
       const pre =
-        /^ {2,}\S/m.test(text) || /[|+].*[|+]/.test(text) || /\t/.test(text);
+        !prose &&
+        !metadata &&
+        (table ||
+          /[|+].*[|+]/.test(value) ||
+          (artLines.length >= Math.min(2, nonempty.length) &&
+            artLines.length >= Math.ceil(nonempty.length * 0.6) &&
+            artLines.length > 0) ||
+          (nonempty.length > 2 &&
+            nonempty.every((line) => /^[\sA-Z0-9$=~?+.,:;-]+$/.test(line)) &&
+            nonempty.some((line) => /([A-Z0-9])\1{2}/.test(line))));
+      const trimmed = value.trim();
       const heading =
         !pre &&
-        text.length < 100 &&
-        !text.includes("\n") &&
-        (/^[A-Z\d][A-Z\d\s: .—-]+$/.test(text) ||
-          /^#{1,6} /.test(text) ||
-          /^\d+(?:\.\d+)*[.)]?\s+[A-Z][^.!?]{1,70}$/.test(text));
-      const list = /^\s*(?:[-*•]|\d+[.)]) /m.test(text);
+        trimmed.length < 100 &&
+        !trimmed.includes("\n") &&
+        (/^[A-Z\d][A-Z\d\s: .—-]+$/.test(trimmed) ||
+          /^#{1,6} /.test(trimmed) ||
+          /^(?:\d+(?:\.\d+)*|[IVXLCDM]+)[.)]?\s+[A-Z][^.!?]{1,70}$/.test(
+            trimmed,
+          ));
+      const list =
+        metadata ||
+        nonempty.every((line) => /^\s*(?:[-*•]|\d+[.)]) /.test(line));
       return {
         kind: pre ? "pre" : heading ? "heading" : list ? "list" : "paragraph",
-        text: pre || list ? text : text.replace(/\n/g, " "),
-        level: heading ? text.match(/^#+/)?.[0].length || 1 : 0,
+        text:
+          pre || list
+            ? value
+            : trimmed.replace(/\s*\n\s*/g, " ").replace(/[ \t]{2,}/g, " "),
+        level: heading ? trimmed.match(/^#+/)?.[0].length || 1 : 0,
       };
     });
 }
@@ -51,7 +337,7 @@ function makeGuide(title, sources) {
       });
     const targets = new Set();
     for (const b of blocks)
-      if (b.kind === "heading") {
+      if (b.kind === "heading" && b.toc !== false) {
         toc.push({
           id: b.id,
           title: b.text.replace(/^#+ /, ""),
@@ -75,16 +361,6 @@ function makeGuide(title, sources) {
         });
       }
     }
-    if (!targets.size && blocks.length > 30)
-      for (let i = 30; i < blocks.length; i += 30)
-        toc.push({
-          id: `section-${blocks[i].id}`,
-          title: `Section ${i / 30 + 1}`,
-          fileId: s.id,
-          blockId: blocks[i].id,
-          offset: 0,
-          level: 1,
-        });
     const order = new Map(blocks.map((b, i) => [b.id, i]));
     const entries = toc
       .filter((t) => t.fileId === s.id)
@@ -115,7 +391,8 @@ function makeGuide(title, sources) {
   };
 }
 function search(g, query) {
-  if (!query.trim()) return [];
+  query = query.trim();
+  if (!query) return [];
   const pattern = new RegExp(
       query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
       "giu",
