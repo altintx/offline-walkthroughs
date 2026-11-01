@@ -96,6 +96,12 @@ function appHarness(options = {}) {
     Alert: { alert: (...args) => alerts.push(args) },
     BackHandler: { addEventListener: () => ({ remove() {} }) },
     useColorScheme: () => "dark",
+    useWindowDimensions: () => ({
+      width: 390,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    }),
   });
   const mocks = {
     "test:timers": {

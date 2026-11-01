@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
   useColorScheme,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { readAsStringAsync } from "expo-file-system/legacy";
@@ -30,7 +31,7 @@ import {
   stepMatch,
   makeGuide,
 } from "./src/core.cjs";
-import { theme } from "./src/theme";
+import { theme, themes } from "./src/theme";
 import {
   Anchor,
   Guide,
@@ -89,7 +90,11 @@ function WalkthroughApp() {
   const [fontsLoaded] = useFonts({
     ManualMono: require("./assets/ManualMono.ttf"),
   });
+  const { width: windowWidth } = useWindowDimensions();
   const system = useColorScheme(),
+    [themeId, setThemeId] = useState("super-manual"),
+    [showSettings, setShowSettings] = useState(false),
+    [gridWidth, setGridWidth] = useState<number>(),
     [fontUri, setFontUri] = useState<string>(),
     [readingPosition, setReadingPosition] = useState<
       Anchor & { page: number; pages: number }
@@ -123,6 +128,15 @@ function WalkthroughApp() {
     [fixed, setFixed] = useState<string>(),
     [scale, setScale] = useState(1),
     [pan, setPan] = useState({ x: 0, y: 0 });
+  const gridActions = useRef(new Set<number>());
+  gridActions.current.clear();
+  const availableWidth = gridWidth || windowWidth;
+  const libraryColumns = availableWidth >= 360 ? 4 : 3;
+  const libraryCardWidth = Math.floor(
+    (availableWidth - 24 - (libraryColumns - 1) * 8) / libraryColumns,
+  );
+  const brandFontSize = windowWidth < 360 ? 24 : 30;
+  const selectedTheme = themes[themeId] || theme;
   const artworkSelectionInFlight = useRef(false);
   const web = useRef<WebView>(null),
     abort = useRef<AbortController | undefined>(undefined),
@@ -154,8 +168,17 @@ function WalkthroughApp() {
   }, [fontsLoaded]);
   useEffect(() => {
     setFocus(0);
-  }, [panel, guide?.id, zoom, fixed, libraryAction?.id, renaming, showImport]);
-  const colors = theme[colorMode(mode, system) as "light" | "dark"];
+  }, [
+    panel,
+    guide?.id,
+    zoom,
+    fixed,
+    libraryAction?.id,
+    renaming,
+    showImport,
+    showSettings,
+  ]);
+  const colors = selectedTheme[colorMode(mode, system) as "light" | "dark"];
   const results = useMemo(
     () => (guide ? search(guide, query) : []),
     [guide, query],
@@ -165,6 +188,8 @@ function WalkthroughApp() {
     const g = imported || (await loadGuide(row.path));
     setNotice("");
     setGuide(g);
+    setShowImport(false);
+    setShowSettings(false);
     setReadingPosition(undefined);
     const a = resolveAnchor(
       g,
@@ -180,6 +205,8 @@ function WalkthroughApp() {
   useEffect(() => {
     (async () => {
       try {
+        const storedTheme = await setting("theme");
+        if (storedTheme && themes[storedTheme]) setThemeId(storedTheme);
         setMode((await setting("mode")) || "system");
         setFont(Number(await setting("font")) || 18);
         const r = await library();
@@ -212,12 +239,21 @@ function WalkthroughApp() {
     sendCommand({ type: "anchor", anchor: a });
     setPanel("");
   };
+  function openHomePage(page: "library" | "settings" | "import") {
+    setShowSettings(page === "settings");
+    setShowImport(page === "import");
+    setNotice("");
+    setFocus(0);
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }
   const back = () => {
     if (libraryAction) {
       setLibraryAction(undefined);
       setRenaming(false);
-    } else if (!guide && showImport && rows.length) setShowImport(false);
-    else if (zoom || fixed) {
+    } else if (!guide && (showSettings || showImport)) {
+      if (showImport) abort.current?.abort();
+      openHomePage("library");
+    } else if (zoom || fixed) {
       setZoom(undefined);
       setFixed(undefined);
     } else if (panel) setPanel("");
@@ -263,7 +299,16 @@ function WalkthroughApp() {
               0,
               Math.min(
                 actions.current.length - 1,
-                f + (["down", "right"].includes(action) ? 1 : -1),
+                f +
+                  (["down", "right"].includes(action) ? 1 : -1) *
+                    (!guide &&
+                    !showSettings &&
+                    !showImport &&
+                    !libraryAction &&
+                    gridActions.current.has(f) &&
+                    ["up", "down"].includes(action)
+                      ? libraryColumns
+                      : 1),
               ),
             ),
           );
@@ -276,7 +321,13 @@ function WalkthroughApp() {
     fn: () => void,
     cover?: string | null,
     onLongPress?: () => void,
-    options?: { compact?: boolean; accessibilityLabel?: string },
+    options?: {
+      compact?: boolean;
+      accessibilityLabel?: string;
+      icon?: boolean;
+      toolbar?: boolean;
+      cardWidth?: number;
+    },
   ) => {
     const i = actions.current.length;
     const action = () => {
@@ -288,6 +339,7 @@ function WalkthroughApp() {
     };
     actions.current.push(action);
     longActions.current[i] = onLongPress;
+    if (options?.cardWidth) gridActions.current.add(i);
     return (
       <Pressable
         key={`control-${i}`}
@@ -319,6 +371,26 @@ function WalkthroughApp() {
           elevation: 3,
           borderColor: focus === i ? colors.accent : colors.border,
           backgroundColor: colors.surface,
+          ...(options?.toolbar
+            ? {
+                minHeight: 56,
+                alignSelf: "stretch" as const,
+                justifyContent: "center" as const,
+              }
+            : {}),
+          ...(options?.icon
+            ? {
+                width: 52,
+                minHeight: 56,
+                alignSelf: "stretch" as const,
+                padding: 6,
+                alignItems: "center" as const,
+                justifyContent: "center" as const,
+              }
+            : {}),
+          ...(options?.cardWidth
+            ? { width: options.cardWidth, margin: 0, padding: 6, elevation: 2 }
+            : {}),
           ...(options?.compact
             ? {
                 flex: 1,
@@ -344,13 +416,53 @@ function WalkthroughApp() {
                 ? artworkHeaders
                 : undefined,
             }}
-            style={{ width: 64, height: 80, marginBottom: 8 }}
+            style={
+              options?.cardWidth
+                ? { width: "100%", aspectRatio: 0.8, marginBottom: 8 }
+                : { width: 64, height: 80, marginBottom: 8 }
+            }
             resizeMode="contain"
           />
+        ) : options?.cardWidth ? (
+          <View
+            style={{
+              width: "100%",
+              aspectRatio: 0.8,
+              marginBottom: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.background,
+              borderRadius: 4,
+            }}
+          >
+            <Image
+              accessible={false}
+              source={require("./assets/strattome-map-icon.png")}
+              style={{ width: "75%", height: "75%" }}
+              resizeMode="contain"
+            />
+          </View>
         ) : null}
         <Text
-          numberOfLines={options?.compact ? 2 : undefined}
-          style={{ color: colors.text, fontFamily: theme.font }}
+          allowFontScaling={!options?.icon}
+          numberOfLines={
+            options?.compact ? 2 : options?.cardWidth ? 3 : undefined
+          }
+          style={{
+            color: colors.text,
+            fontFamily: options?.icon ? undefined : selectedTheme.font,
+            ...(options?.icon
+              ? {
+                  fontSize: 24,
+                  lineHeight: 32,
+                  includeFontPadding: false,
+                  textAlign: "center" as const,
+                }
+              : {}),
+            ...(options?.cardWidth
+              ? { fontSize: 12, lineHeight: 16, minHeight: 48 }
+              : {}),
+          }}
         >
           {label}
         </Text>
@@ -524,7 +636,7 @@ function WalkthroughApp() {
     <Text
       style={{
         color: colors.text,
-        fontFamily: theme.font,
+        fontFamily: selectedTheme.font,
         fontSize: 23,
         padding: 12,
         fontWeight: "bold",
@@ -534,7 +646,13 @@ function WalkthroughApp() {
     </Text>
   );
   const text = (s: string) => (
-    <Text style={{ color: colors.text, padding: 10, fontFamily: theme.font }}>
+    <Text
+      style={{
+        color: colors.text,
+        padding: 10,
+        fontFamily: selectedTheme.font,
+      }}
+    >
       {s}
     </Text>
   );
@@ -618,6 +736,14 @@ function WalkthroughApp() {
       ),
     );
   }
+  function renderAppearanceOptions() {
+    return ["system", "light", "dark"].map((m) =>
+      button(`Color: ${m}${m === mode ? " ✓" : ""}`, async () => {
+        await setting("mode", m);
+        setMode(m);
+      }),
+    );
+  }
   const closeSearch = () => {
     Keyboard.dismiss();
     if (position.current) setAnchor({ ...position.current });
@@ -685,7 +811,7 @@ function WalkthroughApp() {
                 <Text
                   style={{
                     color: colors.text,
-                    fontFamily: theme.font,
+                    fontFamily: selectedTheme.font,
                     fontSize: 18 * scale,
                     transform: [{ translateX: pan.x }, { translateY: pan.y }],
                   }}
@@ -851,12 +977,7 @@ function WalkthroughApp() {
               ) : (
                 <>
                   {heading("Reading Settings")}
-                  {["system", "light", "dark"].map((m) =>
-                    button(`Color: ${m}${m === mode ? " ✓" : ""}`, () => {
-                      setMode(m);
-                      setting("mode", m);
-                    }),
-                  )}
+                  {renderAppearanceOptions()}
                   {button("Larger type", () => {
                     setFont(Math.min(32, font + 2));
                     setting("font", String(Math.min(32, font + 2)));
@@ -929,9 +1050,15 @@ function WalkthroughApp() {
           )}
         </>
       ) : (
-        <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
-          {!libraryAction && (!showImport || rows.length === 0) ? (
-            <>
+        <View style={{ flex: 1 }}>
+          {!guide && !libraryAction && !showImport && !showSettings ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 8,
+              }}
+            >
               <View
                 accessible
                 accessibilityRole="header"
@@ -939,7 +1066,9 @@ function WalkthroughApp() {
                 style={{
                   flexDirection: "row",
                   alignItems: "baseline",
-                  paddingHorizontal: 12,
+                  paddingHorizontal: 4,
+                  flex: 1,
+                  minWidth: 0,
                   paddingVertical: 8,
                 }}
               >
@@ -947,9 +1076,9 @@ function WalkthroughApp() {
                   accessible={false}
                   style={{
                     color: colors.text,
-                    fontFamily: theme.font,
-                    fontSize: 34,
-                    lineHeight: 44,
+                    fontFamily: selectedTheme.font,
+                    fontSize: brandFontSize,
+                    lineHeight: brandFontSize + 10,
                     fontWeight: "bold",
                   }}
                 >
@@ -959,8 +1088,8 @@ function WalkthroughApp() {
                   accessible={false}
                   source={require("./assets/strattome-map-icon.png")}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: brandFontSize * 0.82,
+                    height: brandFontSize * 0.82,
                     marginHorizontal: 1,
                     transform: [{ translateY: 3 }],
                   }}
@@ -970,91 +1099,141 @@ function WalkthroughApp() {
                   accessible={false}
                   style={{
                     color: colors.text,
-                    fontFamily: theme.font,
-                    fontSize: 34,
-                    lineHeight: 44,
+                    fontFamily: selectedTheme.font,
+                    fontSize: brandFontSize,
+                    lineHeight: brandFontSize + 10,
                     fontWeight: "bold",
                   }}
                 >
                   me
                 </Text>
               </View>
-              {!libraryAction &&
-                rows.map((r) =>
+              {button(
+                "Import",
+                () => openHomePage("import"),
+                undefined,
+                undefined,
+                { toolbar: true },
+              )}
+              {button(
+                "⚙︎",
+                () => openHomePage("settings"),
+                undefined,
+                undefined,
+                { icon: true, toolbar: true, accessibilityLabel: "Settings" },
+              )}
+            </View>
+          ) : null}
+          <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
+            {showSettings ? (
+              <>
+                {heading("Settings")}
+                {heading("Theme")}
+                {Object.entries(themes).map(([id, value]) =>
                   button(
-                    r.title,
-                    () => open(r),
-                    r.cover,
-                    () => {
-                      setNotice("");
-                      setLibraryAction(r);
-                      setRenaming(false);
-                      setRenameValue(r.title);
+                    `${value.name}${themeId === id ? " ✓" : ""}`,
+                    async () => {
+                      await setting("theme", id);
+                      setThemeId(id);
                     },
                   ),
                 )}
-              {rows.length > 0 && !showImport
-                ? button("Import", () => {
-                    setShowImport(true);
-                    setNotice("");
-                  })
-                : null}
-            </>
-          ) : null}
-          {rows.length === 0 || showImport ? (
-            <>
-              {heading("Import a guide")}
-              {input(url, setUrl, "Guide URL or local file URI")}
-              {button(busy ? "Importing…" : "Import URL", () => {
-                if (!busy) runImport();
-              })}
-              {button("Import local text / HTML", () => {
-                if (!busy) localImport();
-              })}
-              {busy
-                ? button("Cancel import", () => abort.current?.abort())
-                : null}
-              {stage ? (
-                <>
-                  {text(
-                    `${stage.files.length} readable files; ${stage.missing.length} missing pages`,
-                  )}
-                  {stage.missing.map((message, i) => (
-                    <React.Fragment key={`missing-${i}`}>
-                      {text(message)}
-                    </React.Fragment>
-                  ))}
-                  {input(
-                    artQuery,
-                    setArtQuery,
-                    "Optional game title for artwork",
-                  )}
-                  {button(
-                    artBusy ? "Looking up artwork…" : "Look up artwork online",
-                    lookupArtwork,
-                  )}
-                  {renderArtworkResults()}
-                  {artSaving ? text("Saving artwork…") : null}
-                  {stage.artwork ? text(stage.artwork.attribution) : null}
-                  {button(
-                    stage.missing.length
-                      ? "Accept incomplete guide and save"
-                      : "Save guide offline",
-                    () => finish(!!stage.missing.length),
-                  )}
-                  {button("Retry", runImport)}
-                </>
-              ) : null}
-              {rows.length > 0
-                ? button("Close import", () => {
-                    if (busy) abort.current?.abort();
-                    setShowImport(false);
-                    setNotice("");
-                  })
-                : null}
-            </>
-          ) : null}
-        </ScrollView>
+                {Object.keys(themes).length === 1
+                  ? text("No other themes are available yet.")
+                  : null}
+                {heading("Appearance")}
+                {renderAppearanceOptions()}
+                {button("Back to library", () => openHomePage("library"))}
+              </>
+            ) : (
+              <>
+                {!libraryAction && (!showImport || rows.length === 0) ? (
+                  <>
+                    <View
+                      onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
+                      style={{
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: 8,
+                        padding: 12,
+                      }}
+                    >
+                      {!libraryAction &&
+                        rows.map((r) =>
+                          button(
+                            r.title,
+                            () => open(r),
+                            r.cover,
+                            () => {
+                              setNotice("");
+                              setLibraryAction(r);
+                              setRenaming(false);
+                              setRenameValue(r.title);
+                            },
+                            { cardWidth: libraryCardWidth },
+                          ),
+                        )}
+                    </View>
+                  </>
+                ) : null}
+                {rows.length === 0 || showImport ? (
+                  <>
+                    {heading("Import a guide")}
+                    {input(url, setUrl, "Guide URL or local file URI")}
+                    {button(busy ? "Importing…" : "Import URL", () => {
+                      if (!busy) runImport();
+                    })}
+                    {button("Import local text / HTML", () => {
+                      if (!busy) localImport();
+                    })}
+                    {busy
+                      ? button("Cancel import", () => abort.current?.abort())
+                      : null}
+                    {stage ? (
+                      <>
+                        {text(
+                          `${stage.files.length} readable files; ${stage.missing.length} missing pages`,
+                        )}
+                        {stage.missing.map((message, i) => (
+                          <React.Fragment key={`missing-${i}`}>
+                            {text(message)}
+                          </React.Fragment>
+                        ))}
+                        {input(
+                          artQuery,
+                          setArtQuery,
+                          "Optional game title for artwork",
+                        )}
+                        {button(
+                          artBusy
+                            ? "Looking up artwork…"
+                            : "Look up artwork online",
+                          lookupArtwork,
+                        )}
+                        {renderArtworkResults()}
+                        {artSaving ? text("Saving artwork…") : null}
+                        {stage.artwork ? text(stage.artwork.attribution) : null}
+                        {button(
+                          stage.missing.length
+                            ? "Accept incomplete guide and save"
+                            : "Save guide offline",
+                          () => finish(!!stage.missing.length),
+                        )}
+                        {button("Retry", runImport)}
+                      </>
+                    ) : null}
+                    {rows.length > 0 || showImport
+                      ? button("Close import", () => {
+                          if (busy) abort.current?.abort();
+                          openHomePage("library");
+                        })
+                      : null}
+                  </>
+                ) : null}
+              </>
+            )}
+          </ScrollView>
+        </View>
       )}
       {libraryAction ? (
         <Modal

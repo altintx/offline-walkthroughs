@@ -36,3 +36,5 @@ export const theme: VisualTheme = {
     border: "#685b7c",
   },
 };
+
+export const themes: Record<string, VisualTheme> = { "super-manual": theme };
