@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Offline Walkthroughs",
+    "slug": "offline-walkthroughs",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.altintx.walkthroughs"
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-system-ui",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/ManualMono.ttf"
+          ]
+        }
+      ]
+    ]
+  }
+}

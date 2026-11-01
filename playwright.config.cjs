@@ -1,0 +1,1 @@
+module.exports={testDir:"tests/browser",use:{browserName:"chromium",headless:true,launchOptions:process.env.CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH}:{}},reporter:"list"};

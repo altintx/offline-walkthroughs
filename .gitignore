@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+android/
+!modules/**/android/
+*.jks
+*.keystore
+.env*
+credentials.json
+test-results/
+playwright-report/

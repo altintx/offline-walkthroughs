@@ -1,0 +1,2 @@
+const fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
+module.exports=(filename,mocks={})=>{filename=path.resolve(filename);const mod=new Module(filename);mod.filename=filename;mod.paths=Module._nodeModulePaths(path.dirname(filename));const original=mod.require.bind(mod);mod.require=id=>Object.hasOwn(mocks,id)?mocks[id]:original(id);mod._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,filename);return mod.exports;};
