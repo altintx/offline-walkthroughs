@@ -8,6 +8,7 @@ const { makeGuide } = require("../src/core.cjs");
 // Exercise the app's event handlers and hook dependencies without native views.
 function appHarness(options = {}) {
   const slots = [];
+  const settings = new Map(Object.entries(options.settings || {}));
   const htmlCalls = [];
   const artworkSaves = [],
     savedGuides = [],
@@ -159,7 +160,12 @@ function appHarness(options = {}) {
         if (i >= 0) libraryRows.splice(i, 1);
       },
       loadGuide: async () => guide,
-      setting: async (key) => (key === "lastGuide" ? guide.id : undefined),
+      setting: async (key, value) => {
+        if (value !== undefined) settings.set(key, value);
+        return (
+          settings.get(key) || (key === "lastGuide" ? guide.id : undefined)
+        );
+      },
       progress: async () => {},
       saveGuide: async (g) => {
         savedGuides.push(g);
@@ -257,6 +263,7 @@ function appHarness(options = {}) {
     htmlCalls,
     artworkSaves,
     savedGuides,
+    settings,
     announcements,
     guide,
     libraryRows,
@@ -815,4 +822,50 @@ test("closing browser capture cancels its pending request and retains both origi
   assert.ok(h.button(root, "Import URL"));
   assert.ok(h.button(root, "Import local text / HTML"));
   assert.ok(h.announcements.some((text) => /Import cancelled/.test(text)));
+});
+test("all console themes can be selected, persist, and supply their palette to the reader", async () => {
+  const { themes } = require("./load-ts.cjs")("src/theme.ts");
+  const h = appHarness({ home: true });
+  let root = await h.boot();
+  for (const id of ["read-cube", "read-station", "read-box"]) {
+    h.button(root, "Settings").props.onPress();
+    root = h.render();
+    assert.ok(
+      !JSON.stringify(root).includes("No other themes are available yet."),
+    );
+    for (const name of ["Read Cube", "Read Station", "Read Box"])
+      assert.ok(
+        h
+          .walk(root)
+          .some(
+            (n) =>
+              n.type === "Pressable" &&
+              n.props.accessibilityLabel.startsWith(name),
+          ),
+      );
+    h.button(root, themes[id].name).props.onPress();
+    await new Promise(setImmediate);
+    root = h.render();
+    assert.equal(h.settings.get("theme"), id);
+    assert.ok(h.button(root, themes[id].name + " ✓"));
+    assert.equal(root.props.style.backgroundColor, themes[id].dark.background);
+    h.button(root, "Back to library").props.onPress();
+    root = h.render();
+    h.button(root, h.guide.title).props.onPress();
+    await new Promise(setImmediate);
+    root = h.render();
+    assert.deepEqual(h.htmlCalls.at(-1)[3], themes[id].dark);
+    // The native reader's Library action also works without controller hardware.
+    root = h.render();
+    h.button(root, "☰").props.onPress();
+    root = h.render();
+    h.button(root, "Back to Library").props.onPress();
+    root = h.render();
+  }
+  const restored = appHarness({ home: true, settings: { theme: "read-box" } });
+  const restoredRoot = await restored.boot();
+  assert.equal(
+    restoredRoot.props.style.backgroundColor,
+    themes["read-box"].dark.background,
+  );
 });

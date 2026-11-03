@@ -1,4 +1,5 @@
 import { Guide, Anchor } from "./storage";
+import type { Palette } from "./theme";
 const escape = (s: string) =>
   s.replace(
     /[&<>"']/g,
@@ -11,7 +12,7 @@ export function readerHTML(
   g: Guide,
   anchor: Anchor,
   font: number,
-  colors: { surface: string; text: string },
+  colors: Pick<Palette, "surface" | "text"> & Partial<Palette>,
   match?: Anchor & { length: number },
   fontUri?: string,
 ) {
@@ -48,9 +49,9 @@ export function readerHTML(
  ${fontUri ? `@font-face{font-family:Manual;src:url('${escape(fontUri)}')}` : ""}
  *{box-sizing:border-box}html{overflow:hidden;height:100%;touch-action:none}body{width:100vw;height:100%;margin:0;background:${colors.surface};color:${colors.text};font:${font}px ${fontUri ? "Manual," : ""}monospace;line-height:1.55}
  #viewport{position:fixed;inset:16px;overflow:hidden;contain:paint}#book{width:100%;height:100%;margin:0;column-count:1;column-gap:32px;column-fill:auto}
- p,h2,pre{margin:0 0 1em;white-space:normal;overflow-wrap:anywhere}h2{font-size:1.2em}p[data-list]{white-space:pre-wrap}
+ p,h2,pre{margin:0 0 1em;white-space:normal;overflow-wrap:anywhere}h2{font-size:1.2em;color:${colors.accent || colors.text};${colors.glow ? `text-shadow:0 0 10px ${colors.glow};` : ""}}p[data-list]{white-space:pre-wrap}
  pre{white-space:pre;overflow:hidden;width:100%;max-width:100%;font-size:.85em;max-height:calc(100vh - 160px);break-inside:avoid;border:0;padding:6px;}
- .open-fixed{display:block;width:100%;padding:10px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;white-space:normal}figure{break-inside:avoid}img{display:block;max-width:100%;max-height:calc(100vh - 64px);object-fit:contain;break-inside:avoid}mark{background:#e6c04b;color:#211735}
+ .open-fixed{display:block;width:100%;padding:10px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;white-space:normal}figure{break-inside:avoid}img{display:block;max-width:100%;max-height:calc(100vh - 64px);object-fit:contain;break-inside:avoid}mark{background:${colors.tertiaryAccent || colors.accent || "#e6c04b"};color:${colors.accent ? colors.surface : "#211735"}}
  </style></head><body><div id="viewport"><main id="book">${content}</main></div><script>
  let page=0, renderedOffset=0;let lastAnchor=${JSON.stringify(anchor)};
  const viewport=()=>document.getElementById('viewport').getBoundingClientRect();

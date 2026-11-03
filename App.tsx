@@ -508,6 +508,7 @@ function WalkthroughApp() {
     onLongPress?: () => void,
     options?: {
       compact?: boolean;
+      tone?: "accent" | "secondaryAccent" | "tertiaryAccent";
       accessibilityLabel?: string;
       icon?: boolean;
       toolbar?: boolean;
@@ -549,11 +550,19 @@ function WalkthroughApp() {
         style={{
           padding: 12,
           margin: 4,
-          borderRadius: 8,
+          borderRadius: selectedTheme.radius,
           borderWidth: 2,
           borderTopColor: focus === i ? colors.accent : colors.highlight,
           borderBottomWidth: 4,
-          elevation: 3,
+          elevation: colors.glow ? 6 : 3,
+          ...(colors.glow
+            ? {
+                shadowColor: colors.glow,
+                shadowOpacity: 0.45,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 0 },
+              }
+            : {}),
           borderColor: focus === i ? colors.accent : colors.border,
           backgroundColor: colors.surface,
           ...(options?.toolbar
@@ -634,7 +643,9 @@ function WalkthroughApp() {
             options?.compact ? 2 : options?.cardWidth ? 3 : undefined
           }
           style={{
-            color: colors.text,
+            color: options?.tone
+              ? colors[options.tone] || colors.text
+              : colors.text,
             fontFamily: options?.icon ? undefined : selectedTheme.font,
             ...(options?.icon
               ? {
@@ -850,7 +861,7 @@ function WalkthroughApp() {
   const heading = (s: string) => (
     <Text
       style={{
-        color: colors.text,
+        color: colors.accent,
         fontFamily: selectedTheme.font,
         fontSize: 23,
         padding: 12,
@@ -1484,7 +1495,7 @@ function WalkthroughApp() {
                 <Text
                   accessible={false}
                   style={{
-                    color: colors.text,
+                    color: colors.tertiaryAccent || colors.text,
                     fontFamily: selectedTheme.font,
                     fontSize: brandFontSize,
                     lineHeight: brandFontSize + 10,
@@ -1499,14 +1510,22 @@ function WalkthroughApp() {
                 () => openHomePage("import"),
                 undefined,
                 undefined,
-                { toolbar: true },
+                {
+                  toolbar: true,
+                  tone: colors.secondaryAccent ? "accent" : undefined,
+                },
               )}
               {button(
                 "⚙︎",
                 () => openHomePage("settings"),
                 undefined,
                 undefined,
-                { icon: true, toolbar: true, accessibilityLabel: "Settings" },
+                {
+                  icon: true,
+                  toolbar: true,
+                  accessibilityLabel: "Settings",
+                  tone: "secondaryAccent",
+                },
               )}
             </View>
           ) : null}
