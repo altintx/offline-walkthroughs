@@ -3,6 +3,7 @@ import { parseDocument, DomUtils } from "htmlparser2";
 import {
   plainBlocks,
   belongsToGuide,
+  guidePageURL,
   extractHTML,
   makeGuide,
   validateImport,
@@ -31,6 +32,7 @@ export type Stage = {
   assets: { uri: string; source: string }[];
   title: string;
   directory: string;
+  artworkQuery?: string;
   artwork?: { uri: string; attribution: string };
 };
 export function discardStage(stage: Stage) {
@@ -49,28 +51,67 @@ function adapter(html: string, url: string) {
         .trim()
     : undefined;
   const extracted = extractHTML(html);
-  if (gamefaqs && !extracted.blocks.some((b) => b.text.length > 200))
+  if (
+    gamefaqs &&
+    extracted.blocks
+      .filter((b) => b.kind !== "image")
+      .reduce((sum, b) => sum + b.text.trim().length, 0) < 80
+  )
     throw Error("GameFAQs page contains no readable guide");
   if (gamefaqs)
     extracted.blocks = extracted.blocks.flatMap((b) =>
       b.kind === "pre"
         ? plainBlocks(b.text).map(
             (
-              part: { kind: string; text: string; level: number },
+              part: {
+                kind: string;
+                text: string;
+                level: number;
+                sourceIds?: string[];
+              },
               i: number,
-            ) => ({ ...part, sourceIds: i === 0 ? b.sourceIds : [] }),
+            ) => ({
+              ...part,
+              sourceIds: [
+                ...new Set([
+                  ...(i === 0 ? b.sourceIds || [] : []),
+                  ...(part.sourceIds || []),
+                ]),
+              ],
+            }),
           )
         : [b],
     );
   return { ...extracted, title };
 }
+export type ImportPage = { url: string; html: string };
+export type ImportProgress = {
+  phase: "pages" | "images" | "saving";
+  completed: number;
+  total: number;
+  detail?: string;
+};
+export type ImportTransport = {
+  onProgress?: (progress: ImportProgress) => void;
+  initialPage?: ImportPage;
+  fetchPage?: (url: string, signal: AbortSignal) => Promise<ImportPage>;
+};
 export async function stageImport(
   url: string,
   signal: AbortSignal,
+  transport: ImportTransport = {},
 ): Promise<Stage> {
-  const root = new URL(url);
+  const root = new URL(guidePageURL(url, url)!);
   if (root.protocol !== "https:") throw Error("Use an HTTPS guide URL");
   root.hash = "";
+  if (transport.initialPage) {
+    const initial = new URL(
+      guidePageURL(transport.initialPage.url, url) || transport.initialPage.url,
+    );
+    initial.hash = "";
+    if (initial.href !== root.href)
+      throw Error("Captured page does not match the selected guide");
+  }
   const directory = new Directory(
     Paths.cache,
     `import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -96,12 +137,27 @@ export async function stageImport(
         stage.missing.push("Guide exceeds 100 pages");
         break;
       }
+      transport.onProgress?.({
+        phase: "pages",
+        completed: seen.size - 1,
+        total: seen.size + queue.length,
+        detail: page,
+      });
       try {
-        const response = await fetch(page, { signal });
-        if (!response.ok) throw Error(`HTTP ${response.status}`);
-        if (!belongsToGuide(response.url || page, url))
+        let loaded: ImportPage;
+        if (page === root.href && transport.initialPage)
+          loaded = transport.initialPage;
+        else if (transport.fetchPage)
+          loaded = await transport.fetchPage(page, signal);
+        else {
+          const response = await fetch(page, { signal });
+          if (!response.ok) throw Error(`HTTP ${response.status}`);
+          loaded = { url: response.url || page, html: await response.text() };
+        }
+        checkAbort(signal);
+        if (!belongsToGuide(loaded.url, url))
           throw Error("Redirect left selected guide");
-        const html = await response.text();
+        const html = loaded.html;
         if (/cf-chl-|verify you are human|g-recaptcha|hcaptcha/i.test(html))
           throw Error("Site challenge blocked this page");
         const extracted = adapter(html, page);
@@ -110,9 +166,14 @@ export async function stageImport(
           stage.title = extracted.title;
         for (const b of extracted.blocks)
           if (b.kind === "image") b.text = new URL(b.text, page).href;
+        const headings = extracted.blocks.filter((b) => b.kind === "heading");
+        const chapterName =
+          headings[0]?.text === "Appendix" && headings[1]?.level === 3
+            ? `Appendix: ${headings[1].text}`
+            : headings[0]?.text;
         stage.files.push({
           id: `file-${stage.files.length}`,
-          name: new URL(page).search || "Guide",
+          name: chapterName || extracted.title || "Guide",
           source: page,
           ...extracted,
         });
@@ -124,8 +185,12 @@ export async function stageImport(
           dom.children,
         );
         for (const a of anchors) {
-          const next = new URL(a.attribs.href, page);
-          next.hash = "";
+          const normalized = guidePageURL(
+            new URL(a.attribs.href, page).href,
+            root.href,
+          );
+          if (!normalized) continue;
+          const next = new URL(normalized);
           if (
             belongsToGuide(next.href, url) &&
             !seen.has(next.href) &&
@@ -138,7 +203,31 @@ export async function stageImport(
         stage.missing.push(`${page}: ${String(e)}`);
       }
     }
-    for (const [i, url] of [...new Set(stage.images)].entries()) {
+    // Next/Last/TOC links can discover page 8 before page 3. Preserve the
+    // document's numeric page order rather than link-discovery order.
+    if (
+      /(^|\.)gamefaqs\.gamespot\.com$/.test(root.hostname) &&
+      stage.files.every((file) => {
+        const location = new URL(file.source!);
+        return (
+          location.pathname === root.pathname &&
+          /^(?:\d+)?$/.test(location.searchParams.get("page") || "")
+        );
+      })
+    )
+      stage.files.sort(
+        (a, b) =>
+          Number(new URL(a.source!).searchParams.get("page") || 0) -
+          Number(new URL(b.source!).searchParams.get("page") || 0),
+      );
+    const images = [...new Set(stage.images)];
+    for (const [i, url] of images.entries()) {
+      transport.onProgress?.({
+        phase: "images",
+        completed: i,
+        total: images.length,
+        detail: url,
+      });
       checkAbort(signal);
       try {
         const uri = await downloadImage(
@@ -152,6 +241,11 @@ export async function stageImport(
         stage.missing.push(`Image ${url}: ${String(e)}`);
       }
     }
+    transport.onProgress?.({
+      phase: "images",
+      completed: images.length,
+      total: images.length,
+    });
     return stage;
   } catch (e) {
     discardStage(stage);
@@ -164,10 +258,21 @@ export async function commitImport(
   signal: AbortSignal,
   resetProgress = false,
   displayTitle?: string,
+  onProgress?: (progress: ImportProgress) => void,
 ) {
   validateImport(stage, accept);
   checkAbort(signal);
+  onProgress?.({
+    phase: "saving",
+    completed: 0,
+    total: stage.assets.length + 2,
+    detail: "Preparing guide and table of contents",
+  });
+  // Let the progress screen paint before parsing a large guide.
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  checkAbort(signal);
   const g = makeGuide(stage.title, stage.files) as Guide;
+  if (stage.artworkQuery) g.artworkQuery = stage.artworkQuery;
   if (displayTitle) g.title = displayTitle;
   const dir = new Directory(Paths.document, "guides", g.id);
   dir.create({ intermediates: true, idempotent: true });
@@ -176,10 +281,17 @@ export async function commitImport(
   try {
     for (const [i, asset] of stage.assets.entries()) {
       checkAbort(signal);
+      onProgress?.({
+        phase: "saving",
+        completed: i + 1,
+        total: stage.assets.length + 2,
+        detail: `Copying offline images: ${i + 1} of ${stage.assets.length}`,
+      });
       const destination = new File(dir, `image-${nonce}-${i}`);
       created.push(destination);
       new File(asset.uri).copy(destination);
       g.assets.push({ uri: destination.uri, source: asset.source });
+      if (i % 8 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
     if (stage.artwork) {
       const destination = new File(dir, `cover-${nonce}`);
@@ -192,7 +304,20 @@ export async function commitImport(
       ...stage.missing.map((x) => "Missing content accepted: " + x),
     );
     checkAbort(signal);
+    onProgress?.({
+      phase: "saving",
+      completed: stage.assets.length + 1,
+      total: stage.assets.length + 2,
+      detail:
+        "Saving text, search index and table of contents. Large guides can take a minute.",
+    });
     await saveGuide(g, resetProgress);
+    onProgress?.({
+      phase: "saving",
+      completed: stage.assets.length + 2,
+      total: stage.assets.length + 2,
+      detail: "Saved",
+    });
   } catch (e) {
     for (const file of created) if (file.exists) file.delete();
     throw e;

@@ -1,0 +1,363 @@
+Synthetic tabular find-code guide fixture.
+
+Introduction
+1a.	Walkthrough		WKTH
+1b.	Koopa Cruiser		KPCR
+1c.	Example stop 1c		A002
+1d.	Example stop 1d		A003
+1e.	Example stop 1e		A004
+1f.	Example stop 1f		A005
+1g.	Example stop 1g		A006
+1h.	Example stop 1h		A007
+1i.	Example stop 1i		A008
+1j.	Example stop 1j		A009
+1k.	Example stop 1k		A010
+1l.	Example stop 1l		A011
+1n.	Example stop 1n		A012
+1o.	Example stop 1o		A013
+1p.	Example stop 1p		A014
+1q.	Example stop 1q		A015
+1r.	Example stop 1r		A016
+1s.	Example stop 1s		A017
+1t.	Example stop 1t		A018
+1u.	Example stop 1u		A019
+1v.	Example stop 1v		A020
+1w.	Example stop 1w		A021
+1x.	Example stop 1x		A022
+1y.	Example stop 1y		A023
+1z.	Example stop 1z		A024
+1ba.	Beanstar Piece III		BST3
+1bb.	Example stop 1bb		A026
+1bc.	Example stop 1bc		A027
+1bd.	Example stop 1bd		A028
+1be.	Example stop 1be		A029
+1bf.	Example stop 1bf		A030
+1bg.	Example stop 1bg		A031
+2.	Example appendix 2		B002
+3.	Example appendix 3		B003
+4.	Example appendix 4		B004
+5.	Example appendix 5		B005
+6.	Example appendix 6		B006
+7.	Example appendix 7		B007
+8.	Beans		8BNS
+9.	Example appendix 9		B009
+	Contact Details		CNDL
+	Version History		VRSH
+	Credits		CRDT
+
+  +---+
+  | X |
+  +---+
+
+==============================++++++++++++==============================
+Introduction
+==============================++++++++++++==============================
+This introductory paragraph explains the example guide and remains readable.
+
+==============================++++++++++++==============================
+	Walkthrough
+==============================++++++++++++==============================
+
+WKTH
+
+This is the body for WKTH. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Koopa Cruiser
+==============================++++++++++++==============================
+1B-KPCR
+This is the body for KPCR. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1c
+==============================++++++++++++==============================
+1C-A002
+This is the body for A002. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1d
+==============================++++++++++++==============================
+1D-A003
+This is the body for A003. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1e
+==============================++++++++++++==============================
+1E-A004
+This is the body for A004. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1f
+==============================++++++++++++==============================
+1F-A005
+This is the body for A005. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1g
+==============================++++++++++++==============================
+1G-A006
+This is the body for A006. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1h
+==============================++++++++++++==============================
+1H-A007
+This is the body for A007. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1i
+==============================++++++++++++==============================
+1I-A008
+This is the body for A008. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1j
+==============================++++++++++++==============================
+1J-A009
+This is the body for A009. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1k
+==============================++++++++++++==============================
+1K-A010
+This is the body for A010. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1l
+==============================++++++++++++==============================
+1L-A011
+This is the body for A011. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1n
+==============================++++++++++++==============================
+1N-A012
+This is the body for A012. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1o
+==============================++++++++++++==============================
+1O-A013
+This is the body for A013. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1p
+==============================++++++++++++==============================
+1P-A014
+This is the body for A014. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1q
+==============================++++++++++++==============================
+1Q-A015
+This is the body for A015. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1r
+==============================++++++++++++==============================
+1R-A016
+This is the body for A016. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1s
+==============================++++++++++++==============================
+1S-A017
+This is the body for A017. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1t
+==============================++++++++++++==============================
+1T-A018
+This is the body for A018. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1u
+==============================++++++++++++==============================
+1U-A019
+This is the body for A019. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1v
+==============================++++++++++++==============================
+1V-A020
+This is the body for A020. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1w
+==============================++++++++++++==============================
+1W-A021
+This is the body for A021. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1x
+==============================++++++++++++==============================
+1X-A022
+This is the body for A022. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1y
+==============================++++++++++++==============================
+1Y-A023
+This is the body for A023. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1z
+==============================++++++++++++==============================
+1Z-A024
+This is the body for A024. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	An alternate printed title
+==============================++++++++++++==============================
+1BA-BST3
+This is the body for BST3. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1bb
+==============================++++++++++++==============================
+1BB-A026
+This is the body for A026. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1bc
+==============================++++++++++++==============================
+1BC-A027
+This is the body for A027. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1bd
+==============================++++++++++++==============================
+1BD-A028
+This is the body for A028. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1be
+==============================++++++++++++==============================
+1BE-A029
+This is the body for A029. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1bf
+==============================++++++++++++==============================
+1BF-A030
+This is the body for A030. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example stop 1bg
+==============================++++++++++++==============================
+1BG-A031
+This is the body for A031. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 2
+==============================++++++++++++==============================
+2-B002
+This is the body for B002. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 3
+==============================++++++++++++==============================
+3-B003
+This is the body for B003. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 4
+==============================++++++++++++==============================
+4-B004
+This is the body for B004. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 5
+==============================++++++++++++==============================
+5-B005
+This is the body for B005. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 6
+==============================++++++++++++==============================
+6-B006
+This is the body for B006. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 7
+==============================++++++++++++==============================
+7-B007
+This is the body for B007. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Beans
+==============================++++++++++++==============================
+8-8BNS
+This is the body for 8BNS. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Example appendix 9
+==============================++++++++++++==============================
+9-B009
+This is the body for B009. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Contact Details
+==============================++++++++++++==============================
+CNDL
+This is the body for CNDL. Follow the route carefully and keep
+every sentence available for reading and search.
+
+==============================++++++++++++==============================
+	Version History
+==============================++++++++++++==============================
+VRSH
+This is the body for VRSH. Follow the route carefully and keep
+every sentence available for reading and search.
+
+Credits
+=======
+CRDT
+This is the body for CRDT. Follow the route carefully and keep
+every sentence available for reading and search.
+
+A reference to 1BA-BST3 in prose should not become a destination.
+
+  +---+
+  | Y |
+  +---+

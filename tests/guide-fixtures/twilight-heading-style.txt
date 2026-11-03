@@ -1,0 +1,262 @@
+Synthetic bracket-code and ASCII-side-title fixture.
+
+[0000] Example revisions
+[0100] Example contents
+[0200] Example basics
+[0300] Example walkthroughs
+[0400] Example equipment
+[0500] Example collectibles
+[0600] Example insects
+[0700] Example ghosts
+[0800] Example songs
+[0900] Example encounters
+[1100] Example questions
+[1200] Example final notes and acknowledgments
+[0201] Example history
+[0202] Example abilities
+[0301] Example route
+[0331] Example route
+[0901] Example minibosses
+
+  +---+
+  | X |
+  +---+
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example revisions
+ ----zzzz------zzzz----                    [0000]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0000. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example contents
+ ----zzzz------zzzz----                    [0100]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0100. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example basics
+ ----zzzz------zzzz----                    [0200]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0200. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example history
+ ----zzzz------zzzz----                    [0201]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+This is the body for subsection 0201. Follow the route carefully.
+
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example abilities
+ ----zzzz------zzzz----                    [0202]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+This is the body for subsection 0202. Follow the route carefully.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example walkthroughs
+ ----zzzz------zzzz----                    [0300]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0300. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+  -----zzzzzzzz-----                 Gamecube Walkthrough
+ -----zz--------zz-----               Example route
+ ----zzzz------zzzz----                    [0301]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+This is the body for subsection 0301. Follow the route carefully.
+
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+  -----zzzzzzzz-----                 Wii Walkthrough
+ -----zz--------zz-----               Example route
+ ----zzzz------zzzz----                    [0331]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+This is the body for subsection 0331. Follow the route carefully.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example equipment
+ ----zzzz------zzzz----                    [0400]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0400. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example inventory
+ ----zzzz------zzzz----                    [0401]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+This is the body for subsection 0401. Follow the route carefully.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example collectibles
+ ----zzzz------zzzz----                    [0500]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0500. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example insects
+ ----zzzz------zzzz----                    [0600]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0600. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example ghosts
+ ----zzzz------zzzz----                    [0700]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0700. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example songs
+ ----zzzz------zzzz----                    [0800]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0800. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example encounters
+ ----zzzz------zzzz----                    [0900]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 0900. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example minibosses
+ ----zzzz------zzzz----                    [0901]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~o~
+This is the body for subsection 0901. Follow the route carefully.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+ -----zz--------zz-----               Example questions
+ ----zzzz------zzzz----                    [1100]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 1100. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+          zz
+    -----zzzz-----
+   -----zzzzzz-----
+  -----zzzzzzzz-----                 Example final notes
+ -----zz--------zz-----               and acknowledgments
+ ----zzzz------zzzz----                    [1200]
+   --zzzz----zzzz--
+    zzzzzzzzzzzz
+      ------------
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-
+This is the body for section 1200. Preserve this entire paragraph
+when creating destinations for the contents list.
+
+See [0301] when returning to the earlier route.
+
+[0331]
+
+  +---+
+  | Y |
+  +---+

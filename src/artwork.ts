@@ -3,8 +3,7 @@ import { parseDocument, DomUtils } from "htmlparser2";
 import { Guide, updateGuideMetadata } from "./storage";
 export const artworkHeaders = {
   "User-Agent": "StratTome/0.1 (Android; com.altintx.walkthroughs)",
-  "Api-User-Agent":
-    "StratTome/0.1 (Android; com.altintx.walkthroughs)",
+  "Api-User-Agent": "StratTome/0.1 (Android; com.altintx.walkthroughs)",
 };
 function checkAbort(signal: AbortSignal) {
   if (signal.aborted) {
@@ -48,10 +47,125 @@ async function artworkJSON(host: string, params: Record<string, string>) {
     );
   return Object.values(data.query?.pages || {}) as any[];
 }
-export async function artwork(query: string) {
+const coverRepositories: Record<string, string> = {
+  gb: "Nintendo_-_Game_Boy",
+  gbc: "Nintendo_-_Game_Boy_Color",
+  gba: "Nintendo_-_Game_Boy_Advance",
+  nes: "Nintendo_-_Nintendo_Entertainment_System",
+  snes: "Nintendo_-_Super_Nintendo_Entertainment_System",
+};
+const coverIndexes = new Map<string, Promise<string[]>>();
+function artworkWords(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\.png$/i, "")
+    .split(/[^a-z0-9]+/)
+    .filter(
+      (word) =>
+        word &&
+        ![
+          "the",
+          "of",
+          "a",
+          "an",
+          "and",
+          "gb",
+          "gbc",
+          "gba",
+          "nes",
+          "snes",
+        ].includes(word),
+    )
+    .map((word) =>
+      word.length > 3 && !word.endsWith("ss") ? word.replace(/s$/, "") : word,
+    );
+}
+async function gameBoxArtwork(query: string, sourceURL?: string) {
+  if (!sourceURL) return [];
+  let platform: string | undefined;
+  try {
+    const source = new URL(sourceURL);
+    if (
+      source.protocol !== "https:" ||
+      !/^(?:www\.)?gamefaqs\.(?:gamespot\.com|com)$/.test(source.hostname)
+    )
+      return [];
+    platform = source.pathname.split("/")[1];
+  } catch {
+    return [];
+  }
+  const repository = coverRepositories[platform];
+  const words = [...new Set(artworkWords(query))];
+  if (!repository || !words.length) return [];
+  let index = coverIndexes.get(repository);
+  if (!index) {
+    index = (async () => {
+      const response = await fetch(
+        `https://api.github.com/repos/libretro-thumbnails/${repository}/git/trees/master?recursive=1`,
+        {
+          headers: { ...artworkHeaders, Accept: "application/vnd.github+json" },
+        },
+      );
+      if (!response.ok) throw Error(`Box art lookup: HTTP ${response.status}`);
+      const data = await response.json();
+      if (data.truncated || !Array.isArray(data.tree))
+        throw Error("Box art index is incomplete");
+      return data.tree
+        .filter(
+          (entry: any) =>
+            entry.type === "blob" &&
+            /^Named_Boxarts\/[^/]+\.png$/i.test(entry.path),
+        )
+        .map((entry: any) => entry.path) as string[];
+    })().catch((error) => {
+      coverIndexes.delete(repository);
+      throw error;
+    });
+    coverIndexes.set(repository, index);
+  }
+  return (await index)
+    .map((path) => {
+      const title = path.slice("Named_Boxarts/".length, -4);
+      const tokens = new Set(artworkWords(title));
+      const score = words.every((word) => tokens.has(word))
+        ? 100 -
+          [...tokens].filter((token) => !words.includes(token)).length * 2 +
+          (/\(USA(?:[,)]|$)/.test(title) ? 10 : /Europe/.test(title) ? 4 : 0)
+        : -1;
+      return { path, title, score };
+    })
+    .filter(
+      (item) => item.score >= 0 && !/\b(?:Beta|Proto|Demo)\b/i.test(item.title),
+    )
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .slice(0, 8)
+    .map((item) => {
+      const path = item.path.split("/").map(encodeURIComponent).join("/");
+      return {
+        title: item.title,
+        imageinfo: [
+          {
+            url: `https://raw.githubusercontent.com/libretro-thumbnails/${repository}/master/${path}`,
+            descriptionurl: `https://github.com/libretro-thumbnails/${repository}/blob/master/${path}`,
+            extmetadata: {
+              Credit: {
+                value:
+                  "Box art provided by Libretro Thumbnails; original cover artwork belongs to its respective rights holders.",
+              },
+            },
+          },
+        ],
+      };
+    });
+}
+export async function artwork(query: string, sourceURL?: string) {
   const name = query.trim();
   if (!name) throw Error("Enter the game's title to look up artwork");
   const sources = await Promise.allSettled([
+    gameBoxArtwork(name, sourceURL),
     (async () => {
       const games = await artworkJSON("en.wikipedia.org", {
         generator: "search",

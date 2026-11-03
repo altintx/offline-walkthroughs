@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   Alert,
   Keyboard,
   Modal,
@@ -45,14 +46,23 @@ import {
 } from "./src/storage";
 import {
   Stage,
+  ImportProgress,
   stageImport,
   commitImport,
   discardStage,
   stageArtwork,
 } from "./src/importer";
 import { artwork, artworkHeaders, saveGuideArtwork } from "./src/artwork";
+import {
+  gameFAQsSearchURL,
+  isGameFAQsURL,
+  isGameFAQsGuide,
+  guideBrowserScript,
+  BrowserPage,
+} from "./src/guideBrowser";
 import { readerHTML } from "./src/reader";
 function suggestArtworkQuery(g: Guide) {
+  if (g.artworkQuery) return g.artworkQuery;
   if (!/\.(txt|html?)$/i.test(g.title)) return g.title;
   const intro = g.files[0].blocks
     .slice(0, 12)
@@ -103,6 +113,15 @@ function WalkthroughApp() {
     [font, setFont] = useState(18),
     [rows, setRows] = useState<Awaited<ReturnType<typeof library>>>([]),
     [showImport, setShowImport] = useState(false),
+    [gameSearch, setGameSearch] = useState(""),
+    [browserURL, setBrowserURL] = useState<string>(),
+    [browserPage, setBrowserPage] = useState({
+      url: "",
+      title: "",
+      loading: false,
+      canGoBack: false,
+      canGoForward: false,
+    }),
     [libraryAction, setLibraryAction] =
       useState<Awaited<ReturnType<typeof library>>[number]>(),
     [renaming, setRenaming] = useState(false),
@@ -121,6 +140,8 @@ function WalkthroughApp() {
     [notice, setNotice] = useState(""),
     [stage, setStage] = useState<Stage>(),
     [busy, setBusy] = useState(false),
+    [importProgress, setImportProgress] = useState<ImportProgress>(),
+    [artMessage, setArtMessage] = useState(""),
     [focus, setFocus] = useState(0),
     [tocMode, setTocMode] = useState("headings"),
     [art, setArt] = useState<any[]>([]),
@@ -137,6 +158,21 @@ function WalkthroughApp() {
   );
   const brandFontSize = windowWidth < 360 ? 24 : 30;
   const selectedTheme = themes[themeId] || theme;
+  const browser = useRef<WebView>(null);
+  const browserImportInFlight = useRef(false);
+  const saveImportInFlight = useRef(false);
+  const artworkLookupSequence = useRef(0);
+  const browserSearchTerm = useRef("");
+  const browserRequests = useRef(
+    new Map<
+      string,
+      { resolve: (page: BrowserPage) => void; reject: (error: Error) => void }
+    >(),
+  );
+  const browserSource = useMemo(
+    () => (browserURL ? { uri: browserURL } : undefined),
+    [browserURL],
+  );
   const artworkSelectionInFlight = useRef(false);
   const web = useRef<WebView>(null),
     abort = useRef<AbortController | undefined>(undefined),
@@ -246,7 +282,152 @@ function WalkthroughApp() {
     setFocus(0);
     scroll.current?.scrollTo({ y: 0, animated: false });
   }
+  function closeGuideBrowser() {
+    abort.current?.abort();
+    for (const pending of browserRequests.current.values())
+      pending.reject(Error("Import cancelled"));
+    setBrowserURL(undefined);
+    openHomePage("import");
+  }
+  function searchGameFAQs() {
+    if (browserImportInFlight.current) return;
+    const target = gameFAQsSearchURL(gameSearch);
+    browserSearchTerm.current = gameSearch.trim();
+    Keyboard.dismiss();
+    setNotice("");
+    setBrowserPage({
+      url: target,
+      title: "GameFAQs",
+      loading: true,
+      canGoBack: false,
+      canGoForward: false,
+    });
+    if (target === browserURL)
+      browser.current?.injectJavaScript(
+        `location.href=${JSON.stringify(target)};true;`,
+      );
+    else setBrowserURL(target);
+  }
+  function requestBrowserPage(
+    signal: AbortSignal,
+    url?: string,
+  ): Promise<BrowserPage> {
+    if (signal.aborted) return Promise.reject(Error("Import cancelled"));
+    if (!browser.current)
+      return Promise.reject(Error("The browser is not ready yet"));
+    return new Promise((resolve, reject) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const cleanup = () => {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", cancel);
+        browserRequests.current.delete(id);
+      };
+      const cancel = () => {
+        const pending = browserRequests.current.get(id);
+        pending?.reject(Error("Import cancelled"));
+      };
+      const timer = setTimeout(
+        () =>
+          browserRequests.current
+            .get(id)
+            ?.reject(
+              Error(
+                "The browser did not return this page. Open it and try again.",
+              ),
+            ),
+        30000,
+      );
+      const pending = {
+        resolve: (page: BrowserPage) => {
+          cleanup();
+          resolve(page);
+        },
+        reject: (error: Error) => {
+          cleanup();
+          reject(error);
+        },
+      };
+      browserRequests.current.set(id, pending);
+      signal.addEventListener("abort", cancel, { once: true });
+      if (signal.aborted) {
+        cancel();
+        return;
+      }
+      try {
+        browser.current!.injectJavaScript(guideBrowserScript(id, url));
+      } catch (error) {
+        pending.reject(error instanceof Error ? error : Error(String(error)));
+      }
+    });
+  }
+  useEffect(
+    () => () => {
+      for (const pending of browserRequests.current.values())
+        pending.reject(Error("Browser closed"));
+    },
+    [],
+  );
+  async function captureBrowserGuide() {
+    if (browserImportInFlight.current) return;
+    if (!isGameFAQsGuide(browserPage.url)) {
+      announce("Open a GameFAQs guide before importing");
+      return;
+    }
+    if (browserPage.loading) {
+      announce("Wait for the guide to finish loading");
+      return;
+    }
+    browserImportInFlight.current = true;
+    setImportProgress({ phase: "pages", completed: 0, total: 1 });
+    setBusy(true);
+    setNotice("");
+    const controller = new AbortController();
+    abort.current = controller;
+    const artworkTerm = browserSearchTerm.current;
+    setArtQuery(artworkTerm);
+    setArt([]);
+    setArtMessage("");
+    if (artworkTerm)
+      void searchArtwork(artworkTerm, true, controller.signal, browserPage.url);
+    try {
+      if (stage) discardStage(stage);
+      setStage(undefined);
+      const captured = await requestBrowserPage(controller.signal);
+      if (!isGameFAQsGuide(captured.url))
+        throw Error("The selected page is not a GameFAQs guide");
+      const next = await stageImport(captured.url, controller.signal, {
+        initialPage: captured,
+        onProgress: setImportProgress,
+        fetchPage: (url, signal) => requestBrowserPage(signal, url),
+      });
+      if (!next.files.length) {
+        discardStage(next);
+        throw Error(next.missing[0] || "No readable guide content found");
+      }
+      next.artworkQuery = artworkTerm || undefined;
+      setStage(next);
+      setBrowserURL(undefined);
+      openHomePage("import");
+      announce(`Ready to review ${next.title}`);
+    } catch (error) {
+      announce(String(error));
+    } finally {
+      browserImportInFlight.current = false;
+      setImportProgress(undefined);
+      setBusy(false);
+    }
+  }
   const back = () => {
+    if (importProgress) {
+      if (importProgress.phase !== "saving") abort.current?.abort();
+      return true;
+    }
+    if (browserURL) {
+      if (browserPage.canGoBack && !browserImportInFlight.current)
+        browser.current?.goBack();
+      else closeGuideBrowser();
+      return true;
+    }
     if (libraryAction) {
       setLibraryAction(undefined);
       setRenaming(false);
@@ -271,6 +452,10 @@ function WalkthroughApp() {
     const sub = Controller?.addListener(
       "onInput",
       ({ action }: { action: string }) => {
+        if (importProgress) {
+          if (action === "back") back();
+          return;
+        }
         if (action === "back") back();
         else if (action === "menu") {
           if (!guide) {
@@ -506,16 +691,29 @@ function WalkthroughApp() {
     setBusy(true);
     if (stage) discardStage(stage);
     setStage(undefined);
+    setImportProgress({ phase: "pages", completed: 0, total: 1 });
     try {
-      setStage(await stageImport(value, abort.current.signal));
+      setStage(
+        await stageImport(value, abort.current.signal, {
+          onProgress: setImportProgress,
+        }),
+      );
     } catch (e) {
       announce(String(e));
     } finally {
+      setImportProgress(undefined);
       setBusy(false);
     }
   }
   async function finish(accept: boolean) {
-    if (!stage) return;
+    if (!stage || saveImportInFlight.current) return;
+    saveImportInFlight.current = true;
+    setImportProgress({
+      phase: "saving",
+      completed: 0,
+      total: 1,
+      detail: "Preparing guide",
+    });
     setBusy(true);
     abort.current = new AbortController();
     setNotice("");
@@ -537,6 +735,7 @@ function WalkthroughApp() {
         abort.current.signal,
         true,
         existing?.title,
+        setImportProgress,
       );
       setStage(undefined);
       await refresh();
@@ -548,6 +747,8 @@ function WalkthroughApp() {
     } catch (e) {
       announce(String(e));
     } finally {
+      saveImportInFlight.current = false;
+      setImportProgress(undefined);
       setBusy(false);
     }
   }
@@ -605,6 +806,12 @@ function WalkthroughApp() {
         announce(`Ready to review ${asset.name}`);
         return;
       }
+      setImportProgress({
+        phase: "saving",
+        completed: 0,
+        total: 1,
+        detail: "Preparing text and table of contents",
+      });
       const g = makeGuide(asset.name, [
         { id: "local", name: asset.name, text: contents },
       ]);
@@ -619,6 +826,13 @@ function WalkthroughApp() {
       )
         return;
       if (existing) g.title = existing.title;
+      setImportProgress({
+        phase: "saving",
+        completed: 0,
+        total: 1,
+        detail:
+          "Saving text, search index and table of contents. Large guides can take a minute.",
+      });
       await saveGuide(g, true);
       await refresh();
       await open(
@@ -629,6 +843,7 @@ function WalkthroughApp() {
     } catch (e) {
       announce(String(e));
     } finally {
+      setImportProgress(undefined);
       setBusy(false);
     }
   }
@@ -656,23 +871,43 @@ function WalkthroughApp() {
       {s}
     </Text>
   );
-  async function lookupArtwork() {
-    if (artBusy) return;
+  async function searchArtwork(
+    term: string,
+    automatic = false,
+    signal?: AbortSignal,
+    sourceURL?: string,
+  ) {
+    const sequence = ++artworkLookupSequence.current;
     setArtBusy(true);
     setArt([]);
-    setNotice("");
+    setArtMessage("");
+    if (!automatic) setNotice("");
     try {
-      const found = await artwork(artQuery);
+      const found = await artwork(
+        term,
+        sourceURL || guide?.files[0]?.source || stage?.files[0]?.source,
+      );
+      if (sequence !== artworkLookupSequence.current || signal?.aborted) return;
       setArt(found);
-      if (!found.length)
-        announce(
-          "No artwork found. Try the game’s full title or choose a local image.",
-        );
+      if (!found.length) {
+        const message =
+          "No artwork found. You can save without artwork or try another game title.";
+        setArtMessage(message);
+        if (!automatic) announce(message);
+      }
     } catch (e) {
-      announce(String(e));
+      if (sequence !== artworkLookupSequence.current || signal?.aborted) return;
+      const message =
+        "Artwork search unavailable. You can save without artwork and try again later.";
+      setArtMessage(message);
+      if (!automatic) announce(String(e));
     } finally {
-      setArtBusy(false);
+      if (sequence === artworkLookupSequence.current) setArtBusy(false);
     }
+  }
+  async function lookupArtwork() {
+    if (artBusy) return;
+    return searchArtwork(artQuery);
   }
   async function runArtworkSelection(
     work: () => Promise<boolean | void>,
@@ -803,7 +1038,158 @@ function WalkthroughApp() {
     );
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      {zoom || fixed ? (
+      {browserURL ? (
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {button(
+              "‹",
+              () => {
+                if (!busy && browserPage.canGoBack) browser.current?.goBack();
+              },
+              undefined,
+              undefined,
+              { icon: true, accessibilityLabel: "Browser back" },
+            )}
+            {button(
+              "›",
+              () => {
+                if (!busy && browserPage.canGoForward)
+                  browser.current?.goForward();
+              },
+              undefined,
+              undefined,
+              { icon: true, accessibilityLabel: "Browser forward" },
+            )}
+            <Text numberOfLines={1} style={{ color: colors.text, flex: 1 }}>
+              GameFAQs
+            </Text>
+            {button("Close", closeGuideBrowser)}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{ flex: 1 }}>
+              {input(
+                gameSearch,
+                setGameSearch,
+                "Search GameFAQs for a game",
+                searchGameFAQs,
+              )}
+            </View>
+            {button("Search", searchGameFAQs)}
+          </View>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: colors.text,
+              paddingHorizontal: 12,
+              paddingBottom: 6,
+            }}
+          >
+            {browserPage.title || browserPage.url}
+          </Text>
+          <View style={{ flex: 1 }} pointerEvents={busy ? "none" : "auto"}>
+            <WebView
+              ref={browser}
+              source={browserSource!}
+              style={{ flex: 1 }}
+              originWhitelist={["https://*"]}
+              javaScriptEnabled
+              domStorageEnabled
+              thirdPartyCookiesEnabled
+              allowFileAccess={false}
+              allowFileAccessFromFileURLs={false}
+              allowUniversalAccessFromFileURLs={false}
+              mixedContentMode="never"
+              setSupportMultipleWindows={false}
+              onShouldStartLoadWithRequest={(request) => {
+                if (request.isTopFrame === false)
+                  return request.url.startsWith("https://");
+                return (
+                  isGameFAQsURL(request.url) &&
+                  (!browserImportInFlight.current ||
+                    request.url === browserPage.url)
+                );
+              }}
+              onNavigationStateChange={(state) => {
+                if (isGameFAQsURL(state.url)) {
+                  const location = new URL(state.url);
+                  const searched =
+                    location.pathname === "/search"
+                      ? location.searchParams.get("game")?.trim()
+                      : undefined;
+                  if (searched) {
+                    browserSearchTerm.current = searched;
+                    setGameSearch(searched);
+                  }
+                  setBrowserPage({
+                    url: state.url,
+                    title: state.title,
+                    loading: state.loading,
+                    canGoBack: state.canGoBack,
+                    canGoForward: state.canGoForward,
+                  });
+                }
+              }}
+              onLoadEnd={() =>
+                setBrowserPage((current) => ({ ...current, loading: false }))
+              }
+              onError={(event) =>
+                announce(
+                  `Browser could not load this page: ${event.nativeEvent.description}`,
+                )
+              }
+              onMessage={(event) => {
+                try {
+                  if (
+                    event.nativeEvent.url &&
+                    !isGameFAQsURL(event.nativeEvent.url)
+                  )
+                    return;
+                  if (event.nativeEvent.data.length > 5500000)
+                    throw Error("This guide page is too large to capture");
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (
+                    data.type !== "strattome-guide-page" ||
+                    typeof data.requestId !== "string"
+                  )
+                    return;
+                  const pending = browserRequests.current.get(data.requestId);
+                  if (!pending) return;
+                  if (data.error) {
+                    pending.reject(Error(String(data.error).slice(0, 300)));
+                    return;
+                  }
+                  if (
+                    typeof data.html !== "string" ||
+                    data.html.length > 5000000 ||
+                    !isGameFAQsGuide(data.url)
+                  ) {
+                    pending.reject(
+                      Error("The browser did not return a readable guide page"),
+                    );
+                    return;
+                  }
+                  pending.resolve({ url: data.url, html: data.html });
+                } catch (error) {
+                  for (const pending of browserRequests.current.values())
+                    pending.reject(
+                      error instanceof Error ? error : Error(String(error)),
+                    );
+                }
+              }}
+            />
+          </View>
+          {isGameFAQsGuide(browserPage.url)
+            ? button(
+                busy ? "Importing guide…" : "Import this guide",
+                captureBrowserGuide,
+              )
+            : text(
+                browserPage.loading
+                  ? "Loading GameFAQs…"
+                  : "Find a game, open its Guides page, and choose a guide to import.",
+              )}
+        </View>
+      ) : zoom || fixed ? (
         <>
           <ScrollView horizontal>
             <ScrollView>
@@ -1178,27 +1564,31 @@ function WalkthroughApp() {
                 ) : null}
                 {rows.length === 0 || showImport ? (
                   <>
-                    {heading("Import a guide")}
-                    {input(url, setUrl, "Guide URL or local file URI")}
-                    {button(busy ? "Importing…" : "Import URL", () => {
-                      if (!busy) runImport();
-                    })}
-                    {button("Import local text / HTML", () => {
-                      if (!busy) localImport();
-                    })}
-                    {busy
-                      ? button("Cancel import", () => abort.current?.abort())
-                      : null}
                     {stage ? (
                       <>
+                        {heading("Review guide")}
+                        {text(stage.title)}
                         {text(
-                          `${stage.files.length} readable files; ${stage.missing.length} missing pages`,
+                          "Captured and ready to save. This guide is not in your library yet.",
+                        )}
+                        {text(
+                          `${stage.files.length} readable ${stage.files.length === 1 ? "file" : "files"}; ${stage.missing.length} missing pages`,
                         )}
                         {stage.missing.map((message, i) => (
                           <React.Fragment key={`missing-${i}`}>
                             {text(message)}
                           </React.Fragment>
                         ))}
+                        {button(
+                          stage.missing.length
+                            ? "Accept incomplete guide and save"
+                            : "Save guide offline",
+                          () => finish(!!stage.missing.length),
+                        )}
+                        {heading("Artwork (optional)")}
+                        {text(
+                          "You can save without artwork and add it later from your library.",
+                        )}
                         {input(
                           artQuery,
                           setArtQuery,
@@ -1210,18 +1600,32 @@ function WalkthroughApp() {
                             : "Look up artwork online",
                           lookupArtwork,
                         )}
+                        {artMessage ? text(artMessage) : null}
                         {renderArtworkResults()}
                         {artSaving ? text("Saving artwork…") : null}
                         {stage.artwork ? text(stage.artwork.attribution) : null}
-                        {button(
-                          stage.missing.length
-                            ? "Accept incomplete guide and save"
-                            : "Save guide offline",
-                          () => finish(!!stage.missing.length),
-                        )}
-                        {button("Retry", runImport)}
                       </>
                     ) : null}
+                    {heading("Import a guide")}
+                    {input(
+                      gameSearch,
+                      setGameSearch,
+                      "Search GameFAQs for a game",
+                      searchGameFAQs,
+                    )}
+                    {button("Search GameFAQs", searchGameFAQs)}
+                    {text("Or import a URL or local file")}
+
+                    {input(url, setUrl, "Guide URL or local file URI")}
+                    {button(busy ? "Importing…" : "Import URL", () => {
+                      if (!busy) runImport();
+                    })}
+                    {button("Import local text / HTML", () => {
+                      if (!busy) localImport();
+                    })}
+                    {busy
+                      ? button("Cancel import", () => abort.current?.abort())
+                      : null}
                     {rows.length > 0 || showImport
                       ? button("Close import", () => {
                           if (busy) abort.current?.abort();
@@ -1235,6 +1639,47 @@ function WalkthroughApp() {
           </ScrollView>
         </View>
       )}
+      {importProgress ? (
+        <Modal
+          visible
+          presentationStyle="fullScreen"
+          onRequestClose={() => {
+            if (importProgress.phase !== "saving") abort.current?.abort();
+          }}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+            <View
+              style={{ flex: 1, justifyContent: "center", padding: 24 }}
+              accessibilityViewIsModal
+            >
+              <ActivityIndicator size="large" color={colors.text} />
+              {heading(
+                importProgress.phase === "saving"
+                  ? "Saving guide to your library"
+                  : "Capturing guide",
+              )}
+              <Text
+                accessibilityLiveRegion="polite"
+                style={{ color: colors.text, padding: 10 }}
+              >
+                {importProgress.phase === "pages"
+                  ? `Reading page ${Math.min(importProgress.completed + 1, importProgress.total)} of ${importProgress.total} discovered pages…`
+                  : importProgress.phase === "images"
+                    ? `Downloading offline images: ${importProgress.completed} of ${importProgress.total}`
+                    : importProgress.detail || "Saving guide…"}
+              </Text>
+              {text(
+                importProgress.phase === "saving"
+                  ? "Keep StratTome open while the guide is saved. Large guides can take a minute."
+                  : "Following chapter links and collecting content for offline reading. This can take a minute.",
+              )}
+              {importProgress.phase !== "saving"
+                ? button("Cancel import", () => abort.current?.abort())
+                : null}
+            </View>
+          </SafeAreaView>
+        </Modal>
+      ) : null}
       {libraryAction ? (
         <Modal
           transparent

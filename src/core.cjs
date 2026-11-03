@@ -4,11 +4,11 @@ function hash(s) {
   for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   return (h >>> 0).toString(36);
 }
-function separateTextArtwork(input) {
+function separateTextArtwork(input, initialBlocks = []) {
   const lines = input.split("\n"),
     original = [...lines],
     inserts = new Map(),
-    special = [];
+    special = [...initialBlocks];
   const marker = (block) => {
     const index = special.push(block) - 1;
     return `\uE000layout-${index}\uE001`;
@@ -149,7 +149,214 @@ function separateTextArtwork(input) {
   return { text: output.join("\n"), special };
 }
 function plainBlocks(input) {
-  const { text, special } = separateTextArtwork(input.replace(/\r/g, ""));
+  // Numbered FAQ headings may be embedded between decorative rules without
+  // blank lines. Separate them before artwork classification can swallow them.
+  const sourceLines = input.replace(/\r/g, "").split("\n");
+  const rule = (line) => /^[ \t]*[-=~_*]{5,}[ \t]*$/.test(line || "");
+  const banners = [];
+  const numberedBlocks = [];
+  const markHeading = (i, title, level) => {
+    const index =
+      numberedBlocks.push({ kind: "heading", text: title, level }) - 1;
+    sourceLines[i] = `\uE000layout-${index}\uE001`;
+  };
+  // Tabular contents may give lettered section numbers and a separate find
+  // code. Match the banner's title and nearby code, never a prose reference.
+  const codedContents = new Map();
+  for (const line of sourceLines) {
+    const entry = line.match(
+      /^\s*(?:(\d+[a-z]*[.)])\s*)?([A-Za-z].*?)(?:[ \t]{2,}|\t+)([A-Z0-9]{4})\s*$/,
+    );
+    if (entry)
+      codedContents.set(entry[3], {
+        label: entry[1] || "",
+        title: entry[2].trim(),
+      });
+  }
+  const codedRule = (line) =>
+    /^[ \t]*[=+]{12,}[ \t]*$/.test(line || "") &&
+    /=/.test(line) &&
+    /\+/.test(line);
+  for (let i = 1; i + 1 < sourceLines.length; i++) {
+    const fullFrame =
+      codedRule(sourceLines[i - 1]) && codedRule(sourceLines[i + 1]);
+    const underlined = /^[ \t]*[-=]{5,}[ \t]*$/.test(sourceLines[i + 1] || "");
+    if (!fullFrame && !underlined) continue;
+    const title = sourceLines[i].trim();
+    let codeIndex = i + 2;
+    while (
+      codeIndex < Math.min(sourceLines.length, i + 6) &&
+      !sourceLines[codeIndex].trim()
+    )
+      codeIndex++;
+    const code = sourceLines[codeIndex]
+      ?.trim()
+      .match(/^(?:\d+[a-z]*-)?([A-Z0-9]{4})$/i)?.[1]
+      .toUpperCase();
+    const entry = code && codedContents.get(code);
+    if (entry && /[A-Za-z]/.test(title) && title.length <= 120) {
+      const level =
+        /^\d+[a-z]+[.)]$/.test(entry.label) && !/^\d+a[.)]$/.test(entry.label)
+          ? 2
+          : 1;
+      markHeading(
+        i,
+        (entry.label ? entry.label + " " : "") + entry.title,
+        level,
+      );
+      numberedBlocks.at(-1).sourceIds = [code];
+      sourceLines[codeIndex] = "";
+    } else if (
+      fullFrame &&
+      codedContents.size &&
+      /^introduction$/i.test(title)
+    ) {
+      markHeading(i, title, 1);
+    } else continue;
+    if (fullFrame) sourceLines[i - 1] = "";
+    sourceLines[i + 1] = "";
+  }
+  // Bracket-first contents lists can point at codes placed beside a large
+  // ASCII emblem. Recognize the bounded emblem, not references in prose.
+  const indexedTitles = new Map();
+  for (const line of sourceLines) {
+    const entry = line.match(/^\s*\[(\d{4})\]\s+([A-Za-z].{0,159})\s*$/);
+    if (entry && !indexedTitles.has(entry[1]))
+      indexedTitles.set(entry[1], entry[2].trim());
+  }
+  const emblemRule = (line) =>
+    (line || "").trim().match(/^(?:([-~])o){6,}[-~]?$/i);
+  for (let start = 0; start < sourceLines.length; start++) {
+    const border = emblemRule(sourceLines[start]);
+    if (!border) continue;
+    let end = start + 1;
+    while (
+      end < Math.min(sourceLines.length, start + 25) &&
+      !emblemRule(sourceLines[end])
+    )
+      end++;
+    if (
+      !emblemRule(sourceLines[end]) ||
+      sourceLines[start].trim()[0] !== sourceLines[end].trim()[0]
+    )
+      continue;
+    const titles = [],
+      codes = [];
+    let decorationOnly = true;
+    for (let i = start + 1; i < end; i++) {
+      const line = sourceLines[i];
+      const margin = line.match(/^\s*[-~_=+|/\\<>.#*z]+[ \t]{2,}(.+?)\s*$/i);
+      const code = line.match(/\[(\d{4})\]\s*$/);
+      if (code && /^[\s\-~_=+|/\\<>.#*z]*$/i.test(line.slice(0, code.index)))
+        codes.push(code[1]);
+      else if (margin && /[A-Za-z]/.test(margin[1]))
+        titles.push(margin[1].trim());
+      else if (!/^[\s\-~_=+|/\\<>.#*z]*$/i.test(line)) decorationOnly = false;
+    }
+    if (!decorationOnly || codes.length !== 1 || !titles.length) continue;
+    const code = codes[0],
+      indexedTitle = indexedTitles.get(code),
+      title = indexedTitle || titles.join(" ");
+    const context = indexedTitle
+      ? titles
+          .slice(0, -1)
+          .filter(
+            (value) =>
+              !indexedTitle.toLowerCase().includes(value.toLowerCase()),
+          )
+      : [];
+    markHeading(
+      start,
+      [...context, title].join(" — "),
+      sourceLines[start].trim()[0] === "-" ? 1 : 2,
+    );
+    numberedBlocks.at(-1).sourceIds = [code];
+    sourceLines[start] = "\n" + sourceLines[start];
+    for (let i = start + 1; i <= end; i++) sourceLines[i] = "";
+    start = end;
+  }
+  // Some guides spell their section names with spaced letters inside wide
+  // ASCII frames. Resolve those names against their compact contents labels.
+  const compactName = (value) =>
+    value.replace(/[^A-Za-z0-9]/g, "").toLowerCase();
+  const compactContents = new Map();
+  for (const line of sourceLines) {
+    const entry = line.match(
+      /^\s*(\d+)\)\s*([A-Za-z][A-Za-z0-9 &().,'/-]{0,100})\s*$/,
+    );
+    if (entry)
+      compactContents.set(
+        `${entry[1]}:${compactName(entry[2])}`,
+        entry[2].trim(),
+      );
+  }
+  const framedRule = (line) =>
+    /^[\s/\\_=]+$/.test(line || "") && /={12,}/.test(line);
+  const framed = [];
+  for (let i = 1; i + 1 < sourceLines.length; i++) {
+    if (!framedRule(sourceLines[i - 1]) || !framedRule(sourceLines[i + 1]))
+      continue;
+    const entry = sourceLines[i].match(
+      /^[\s/\\_]*(\d+)\)\s*(.*?)\s*[\s/\\_]*$/,
+    );
+    if (!entry || !/[A-Za-z]/.test(entry[2])) continue;
+    const title = compactContents.get(`${entry[1]}:${compactName(entry[2])}`);
+    if (!title) continue; // A matching contents label avoids guessing word breaks.
+    framed.push({ index: i, title: `${entry[1]}) ${title}` });
+  }
+  for (const { index: i, title } of framed) {
+    markHeading(i, title, 1);
+    sourceLines[i - 1] = sourceLines[i + 1] = "";
+    if (
+      /^[\s/\\_]+$/.test(sourceLines[i - 2] || "") &&
+      /[/\\]/.test(sourceLines[i - 2] || "")
+    )
+      sourceLines[i - 2] = "";
+  }
+  for (let i = 1; i < sourceLines.length - 1; i++) {
+    const title = sourceLines[i].trim();
+    if (!rule(sourceLines[i - 1]) || !rule(sourceLines[i + 1])) continue;
+    // Decimal-colon banners use .0 for a main section. Some authors insert
+    // fractional labels such as 4.9 1/2 between two ordinary subsections.
+    const wrapped = title.match(
+      /^\{[<>]+\}\s*(\d+(?:\.\d+)+(?:\s+\d+\/\d+)?)\s*:\s*(.{1,100}?)\s*\{[<>]+\}$/,
+    );
+    if (wrapped && /[A-Za-z]/.test(wrapped[2])) {
+      const label = wrapped[1].replace(/\s+/g, " ");
+      const index =
+        numberedBlocks.push({
+          kind: "heading",
+          text: `${label}: ${wrapped[2].trim()}`,
+          level: /^\d+\.0$/.test(label) ? 1 : 2,
+        }) - 1;
+      sourceLines[i] = `\uE000layout-${index}\uE001`;
+      banners.push(i);
+    } else if (
+      framed.length &&
+      /^(?:[ivxlcdm]+\)\s*)?[A-Za-z][A-Za-z0-9 ’'&():,./-]{0,95}$/.test(
+        title,
+      ) &&
+      title.split(/\s+/).length <= 12
+    ) {
+      // In this style, two-rule chapter banners (including i)/ii) item
+      // groups) are subsections. Single-underlined location labels stay local.
+      markHeading(i, title.replace(/^([ivxlcdm]+\))\s*/, "$1 "), 2);
+      banners.push(i);
+    } else if (/^\d+(?:\.\d+)*[.)]?\s+[A-Za-z][^!?]{1,90}$/.test(title)) {
+      banners.push(i);
+    }
+  }
+  for (const i of banners) {
+    for (let j = i - 1; j >= 0 && rule(sourceLines[j]); j--)
+      sourceLines[j] = "";
+    for (let j = i + 1; j < sourceLines.length && rule(sourceLines[j]); j++)
+      sourceLines[j] = "";
+    sourceLines[i] = sourceLines[i].trim();
+  }
+  const { text, special } = separateTextArtwork(
+    sourceLines.join("\n"),
+    numberedBlocks,
+  );
   const contents = new Map();
   const untagged = [];
   // FAQ authors commonly link their contents to bracketed labels in banners.
@@ -306,10 +513,14 @@ function plainBlocks(input) {
       return {
         kind: pre ? "pre" : heading ? "heading" : list ? "list" : "paragraph",
         text:
-          pre || list
+          pre || (list && !heading)
             ? value
             : trimmed.replace(/\s*\n\s*/g, " ").replace(/[ \t]{2,}/g, " "),
-        level: heading ? trimmed.match(/^#+/)?.[0].length || 1 : 0,
+        level: heading
+          ? trimmed.match(/^#+/)?.[0].length ||
+            (trimmed.match(/^\d+(?:\.\d+)+[.)]?\s/)?.[0].match(/\.\d/g)
+              ?.length || 0) + 1
+          : 0,
       };
     });
 }
@@ -602,6 +813,25 @@ function extractHTML(html) {
     links,
   };
 }
+const guidePageViews = ["print", "single"];
+function guidePageURL(candidate, base) {
+  const next = new URL(candidate, base),
+    root = new URL(base);
+  next.hash = "";
+  if (/(^|\.)gamefaqs\.gamespot\.com$/.test(root.hostname)) {
+    for (const view of guidePageViews) {
+      if (next.searchParams.get(view) !== root.searchParams.get(view))
+        return undefined;
+    }
+    if (
+      (root.searchParams.has("single") || root.searchParams.has("print")) &&
+      next.searchParams.get("page") !== root.searchParams.get("page")
+    )
+      return undefined;
+    if (next.searchParams.get("page") === "0") next.searchParams.delete("page");
+  }
+  return next.href;
+}
 function belongsToGuide(candidate, base) {
   try {
     const a = new URL(candidate, base),
@@ -659,5 +889,7 @@ module.exports = {
   pageForOffset,
   extractHTML,
   belongsToGuide,
+  guidePageURL,
+  guidePageViews,
   validateImport,
 };

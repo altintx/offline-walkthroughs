@@ -80,6 +80,7 @@ function appHarness(options = {}) {
   const native = Object.fromEntries(
     [
       "Image",
+      "ActivityIndicator",
       "Modal",
       "Pressable",
       "ScrollView",
@@ -112,6 +113,7 @@ function appHarness(options = {}) {
       clearTimeout() {},
     },
     "./src/theme": require("./load-ts.cjs")("src/theme.ts"),
+    "./src/guideBrowser": require("./load-ts.cjs")("src/guideBrowser.ts"),
     react: { ...React, default: React },
     "react-native": native,
     "react-native-url-polyfill/auto": {},
@@ -163,7 +165,26 @@ function appHarness(options = {}) {
         savedGuides.push(g);
       },
     },
-    "./src/importer": {},
+    "./src/importer": {
+      stageImport: async (...args) => {
+        options.onStageImport?.(...args);
+        if (options.waitForStage) await options.waitForStage;
+        return {
+          files: [{ id: "captured", name: "Guide", text: "Captured prose." }],
+          missing: [],
+          images: [],
+          assets: [],
+          title: "Captured guide",
+          directory: "cache/browser",
+        };
+      },
+      commitImport: async (...args) => {
+        options.onCommitImport?.(...args);
+        if (options.waitForCommit) await options.waitForCommit;
+        return { ...guide, artworkQuery: args[0].artworkQuery };
+      },
+      discardStage() {},
+    },
     "./src/artwork": {
       saveGuideArtwork: async (id, source, signal) => {
         artworkSaves.push({ id, source, signal });
@@ -177,12 +198,16 @@ function appHarness(options = {}) {
         savedGuides.push(updated);
         return updated;
       },
-      artwork: async () => [
-        {
-          title: "Minish Cap cover",
-          imageinfo: [{ url: "https://upload.wikimedia.org/cover.png" }],
-        },
-      ],
+      artwork: async (query, source) => {
+        options.onArtworkSearch?.(query, source);
+        if (options.artworkSearch) return options.artworkSearch(query);
+        return [
+          {
+            title: "Minish Cap cover",
+            imageinfo: [{ url: "https://upload.wikimedia.org/cover.png" }],
+          },
+        ];
+      },
       artworkHeaders: { "User-Agent": "StratTome/0.1" },
       artworkAttribution: () => "Cover credit and source",
     },
@@ -570,4 +595,224 @@ test("canceling the local artwork picker neither saves nor announces success", a
   await new Promise(setImmediate);
   assert.equal(h.artworkSaves.length, 0);
   assert.deepEqual(h.announcements, []);
+});
+test("GameFAQs browsing is a third import path with exclusive progress, automatic artwork and review before saving", async () => {
+  let imported, finishCapture, finishSave, saved;
+  const searches = [],
+    artworkSources = [];
+  const waitForStage = new Promise((resolve) => (finishCapture = resolve));
+  const waitForCommit = new Promise((resolve) => (finishSave = resolve));
+  const h = appHarness({
+    home: true,
+    waitForStage,
+    waitForCommit,
+    onArtworkSearch: (query, source) => {
+      searches.push(query);
+      artworkSources.push(source);
+    },
+    onCommitImport: (...args) => (saved = args),
+    onStageImport: (...args) => {
+      imported = args;
+    },
+  });
+  let root = await h.boot();
+  h.button(root, "Import").props.onPress();
+  root = h.render();
+  assert.ok(h.button(root, "Import URL"));
+  assert.ok(h.button(root, "Import local text / HTML"));
+  h.walk(root)
+    .find(
+      (n) =>
+        n.type === "TextInput" &&
+        n.props.placeholder === "Search GameFAQs for a game",
+    )
+    .props.onChangeText("super mario world");
+  root = h.render();
+  h.button(root, "Search GameFAQs").props.onPress();
+  root = h.render();
+  let view = h.walk(root).find((n) => n.type === "WebView");
+  assert.equal(
+    new URL(view.props.source.uri).searchParams.get("game"),
+    "super mario world",
+  );
+  const source = view.props.source,
+    guideURL = "https://gamefaqs.gamespot.com/snes/123-mario/faqs/456";
+  // Searching again inside GameFAQs should update the artwork query too.
+  view.props.onNavigationStateChange({
+    url: "https://gamefaqs.gamespot.com/search?game=super+mario+world+snes",
+    title: "Search",
+    loading: false,
+    canGoBack: true,
+    canGoForward: false,
+  });
+  view.props.onNavigationStateChange({
+    url: guideURL,
+    title: "Mario walkthrough",
+    loading: false,
+    canGoBack: true,
+    canGoForward: false,
+  });
+  root = h.render();
+  view = h.walk(root).find((n) => n.type === "WebView");
+  assert.equal(view.props.source, source);
+  const vm = require("node:vm");
+  view.props.ref.current = {
+    injectJavaScript: (script) => {
+      const element = (tag) => ({
+        textContent: "",
+        get outerHTML() {
+          return "<" + tag + ">" + this.textContent + "</" + tag + ">";
+        },
+      });
+      vm.runInNewContext(script, {
+        URL,
+        location: { href: guideURL, origin: "https://gamefaqs.gamespot.com" },
+        document: {
+          title: "Mario walkthrough",
+          querySelector: () => ({
+            textContent: "Loaded guide prose.",
+            outerHTML: '<div id="faqtext">Loaded guide prose.</div>',
+          }),
+          querySelectorAll: () => [],
+          createElement: element,
+        },
+        window: {
+          ReactNativeWebView: {
+            postMessage: (data) =>
+              view.props.onMessage({ nativeEvent: { data, url: guideURL } }),
+          },
+        },
+      });
+    },
+  };
+  h.button(root, "Import this guide").props.onPress();
+  await new Promise(setImmediate);
+  root = h.render();
+  let progressScreen = h
+    .walk(root)
+    .find((n) => n.type === "Modal" && n.props.visible);
+  assert.ok(progressScreen);
+  assert.equal(progressScreen.props.presentationStyle, "fullScreen");
+  assert.ok(h.walk(progressScreen).some((n) => n.type === "ActivityIndicator"));
+  assert.deepEqual(searches, ["super mario world snes"]);
+  assert.deepEqual(artworkSources, [guideURL]);
+  imported[2].onProgress({ phase: "pages", completed: 7, total: 38 });
+  root = h.render();
+  assert.ok(JSON.stringify(root).includes("Reading page 8 of 38"));
+  finishCapture();
+  await new Promise(setImmediate);
+  root = h.render();
+  assert.equal(
+    h.walk(root).some((n) => n.type === "Modal" && n.props.visible),
+    false,
+  );
+  assert.equal(imported[0], guideURL);
+  assert.match(imported[2].initialPage.html, /Loaded guide prose/);
+  assert.equal(typeof imported[2].fetchPage, "function");
+  assert.ok(h.button(root, "Import URL"));
+  assert.ok(h.button(root, "Import local text / HTML"));
+  assert.ok(h.button(root, "Save guide offline"));
+  assert.ok(
+    JSON.stringify(root).includes("This guide is not in your library yet."),
+  );
+  assert.ok(JSON.stringify(root).includes("You can save without artwork"));
+  assert.equal(
+    h
+      .walk(root)
+      .some((n) => n.props?.title === "Retry" || n.props?.children === "Retry"),
+    false,
+  );
+
+  assert.equal(
+    h.walk(root).find((n) => n.type === "WebView"),
+    undefined,
+  );
+  const save = h.button(root, "Save guide offline");
+  save.props.onPress();
+  save.props.onPress();
+  await new Promise(setImmediate);
+  root = h.render();
+  progressScreen = h
+    .walk(root)
+    .find((n) => n.type === "Modal" && n.props.visible);
+  assert.ok(
+    JSON.stringify(progressScreen).includes("Saving guide to your library"),
+  );
+  assert.equal(h.button(progressScreen, "Cancel import"), undefined);
+  assert.equal(saved[0].artworkQuery, "super mario world snes");
+  finishSave();
+  await new Promise(setImmediate);
+  root = h.render();
+  assert.equal(
+    h.walk(root).some((n) => n.type === "Modal" && n.props.visible),
+    false,
+  );
+  // A later artwork lookup must retain the original search, not the verbose title.
+  h.button(root, "☰").props.onPress();
+  root = h.render();
+  h.button(root, "Artwork").props.onPress();
+  root = h.render();
+  assert.ok(
+    h
+      .walk(root)
+      .some(
+        (n) =>
+          n.type === "TextInput" && n.props.value === "super mario world snes",
+      ),
+  );
+});
+test("closing browser capture cancels its pending request and retains both original import paths", async () => {
+  let staged = 0;
+  const h = appHarness({ home: true, onStageImport: () => staged++ });
+  let root = await h.boot();
+  h.button(root, "Import").props.onPress();
+  root = h.render();
+  h.walk(root)
+    .find(
+      (n) =>
+        n.type === "TextInput" &&
+        n.props.placeholder === "Search GameFAQs for a game",
+    )
+    .props.onChangeText("mario");
+  root = h.render();
+  h.button(root, "Search GameFAQs").props.onPress();
+  root = h.render();
+  let view = h.walk(root).find((n) => n.type === "WebView");
+  assert.equal(
+    view.props.onShouldStartLoadWithRequest({
+      url: "file:///private/guide",
+      isTopFrame: true,
+    }),
+    false,
+  );
+  assert.equal(
+    view.props.onShouldStartLoadWithRequest({
+      url: "https://other.example/",
+      isTopFrame: true,
+    }),
+    false,
+  );
+  view.props.onNavigationStateChange({
+    url: "https://gamefaqs.gamespot.com/game/faqs/123",
+    title: "Guide",
+    loading: false,
+    canGoBack: false,
+    canGoForward: false,
+  });
+  root = h.render();
+  view = h.walk(root).find((n) => n.type === "WebView");
+  view.props.ref.current = { injectJavaScript: () => {} };
+  h.button(root, "Import this guide").props.onPress();
+  root = h.render();
+  h.button(root, "Close").props.onPress();
+  await new Promise(setImmediate);
+  root = h.render();
+  assert.equal(staged, 0);
+  assert.equal(
+    h.walk(root).find((n) => n.type === "WebView"),
+    undefined,
+  );
+  assert.ok(h.button(root, "Import URL"));
+  assert.ok(h.button(root, "Import local text / HTML"));
+  assert.ok(h.announcements.some((text) => /Import cancelled/.test(text)));
 });

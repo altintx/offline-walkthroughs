@@ -10,6 +10,7 @@ export type Block = {
   sourceIds?: string[];
 };
 export type Guide = {
+  artworkQuery?: string;
   cover?: string;
   version: number;
   id: string;

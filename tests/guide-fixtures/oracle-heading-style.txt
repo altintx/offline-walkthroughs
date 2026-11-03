@@ -1,0 +1,186 @@
+Synthetic guide reproducing framed, spaced-letter section headings.
+
+T a b l e  o f  C o n t e n t s
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+1)PRELUDE
+2)EXAMPLE CHAPTER 2
+3)EXAMPLE CHAPTER 3
+4)FAQs
+5)WALKTHROUGH
+6)EXAMPLE CHAPTER 6
+7)EXAMPLE CHAPTER 7
+8)EXAMPLE CHAPTER 8
+9)ITEMS
+  i)Tools
+  ii)Special Items
+10)EXAMPLE CHAPTER 10
+11)EXAMPLE CHAPTER 11
+12)EXAMPLE CHAPTER 12
+13)LINK SYSTEM
+  i)Passwords (Secrets)
+  ii)Link Cable
+14)EXAMPLE CHAPTER 14
+15)EXAMPLE CHAPTER 15
+16)THANKS TO
+
+  +---+
+  | X |
+  +---+
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   1) P R E L U D E   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 1. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   2) E X A M P L E  C H A P T E R  2   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 2. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   3) E X A M P L E  C H A P T E R  3   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 3. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   4) F A Q s   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 4. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   5) W A L K T H R O U G H   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 5. Read the following
+directions carefully and keep all the words in order.
+
+-------------------------------------------------------------------------------
+Prologue
+-------------------------------------------------------------------------------
+This is subsection 5-0. Follow the route and collect the reward.
+
+-------------------------------------------------------------------------------
+Quest for the First Token
+-------------------------------------------------------------------------------
+This is subsection 5-1. Follow the route and collect the reward.
+
+-------------------------------------------------------------------------------
+Level 1 - Example Dungeon
+-------------------------------------------------------------------------------
+This is subsection 5-2. Follow the route and collect the reward.
+
+Example Village
+^^^^^^^^^^^^^^^
+Walk south through the village and enter the marked door.
+
+  +---+
+  | Y |
+  +---+
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   6) E X A M P L E  C H A P T E R  6   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 6. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   7) E X A M P L E  C H A P T E R  7   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 7. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   8) E X A M P L E  C H A P T E R  8   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 8. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   9) I T E M S   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 9. Read the following
+directions carefully and keep all the words in order.
+
+-------------------------------------------------------------------------------
+i)Tools
+-------------------------------------------------------------------------------
+This is subsection 9-0. Follow the route and collect the reward.
+
+-------------------------------------------------------------------------------
+ii)Special Items
+-------------------------------------------------------------------------------
+This is subsection 9-1. Follow the route and collect the reward.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   10) E X A M P L E  C H A P T E R  1 0   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 10. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   11) E X A M P L E  C H A P T E R  1 1   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 11. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   12) E X A M P L E  C H A P T E R  1 2   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 12. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   13) L I N K  S Y S T E M   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 13. Read the following
+directions carefully and keep all the words in order.
+
+-------------------------------------------------------------------------------
+i)Passwords (Secrets)
+-------------------------------------------------------------------------------
+This is subsection 13-0. Follow the route and collect the reward.
+
+-------------------------------------------------------------------------------
+ii)Link Cable
+-------------------------------------------------------------------------------
+This is subsection 13-1. Follow the route and collect the reward.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   14) E X A M P L E  C H A P T E R  1 4   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 14. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   15) E X A M P L E  C H A P T E R  1 5   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 15. Read the following
+directions carefully and keep all the words in order.
+
+   /\                                                  /\
+  /__\================================================/__\
+ /\  /\   16) T H A N K S  T O   /\  /\
+/__\/__\============================================/__\/__\
+This is the main body for example chapter 16. Read the following
+directions carefully and keep all the words in order.
+
+1) Q. Is this an ordinary question?
+A. Yes, keep this question in the prose rather than the table of contents.
