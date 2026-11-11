@@ -74,6 +74,9 @@ export function readerHTML(
  }
  function command(c){
   if(c.type==='turn'){const max=Math.max(0,pageCount()-1);const next=Math.max(0,Math.min(max,page+c.direction));if(next===page)send({type:'boundary',message:page===0?'First page':'Last page'});page=next;applyPage();report()}
+  if(c.type==='page' && Number.isFinite(c.page)){
+   page=Math.max(0,Math.min(pageCount()-1,Math.trunc(c.page)-1));applyPage();report();
+  }
   if(c.type==='anchor')restore(c.anchor);
  }
  const handled=new WeakSet();let lastCommandId=0;

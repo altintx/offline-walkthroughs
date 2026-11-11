@@ -1,0 +1,184 @@
+Synthetic numbered-contents and differently numbered body-parts fixture.
+
+Contents
+
+1. Example chapter 1
+2. Example chapter 2
+3. Example chapter 3
+4. Example chapter 4
+5. Example chapter 5
+6. Example chapter 6
+7. Walkthrough - Disc 1
+8. The Dock
+9. Example chapter 9
+10.Example chapter 10
+11.Example chapter 11
+12.Example chapter 12
+13.Example chapter 13
+14.Example chapter 14
+15.Example chapter 15
+16.Example chapter 16
+17.Example chapter 17
+18.Comms Tower A & B
+19.Snow Field
+20.Walkthrough - Disc 2
+21.Example chapter 21
+22.Example chapter 22
+23.Example chapter 23
+24.Example chapter 24
+25.Example chapter 25
+26.Example chapter 26
+27.Example chapter 27
+28.Example challenge!
+29.Example chapter 29
+30.Example chapter 30
+31.Example chapter 31
+
+
+
+1. Example chapter 1
+
+Body for contents entry 1. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+2. Example chapter 2
+
+Body for contents entry 2. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+3. Example chapter 3
+
+Body for contents entry 3. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+4. Example chapter 4
+
+Body for contents entry 4. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+5. Example chapter 5
+
+Body for contents entry 5. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+6. Example chapter 6
+
+Body for contents entry 6. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Walkthrough
+
+Body for contents entry 7. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 1 - The Dock
+
+Body for contents entry 8. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 2 - Example chapter 9
+
+Body for contents entry 9. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 3 - Example chapter 10
+
+Body for contents entry 10. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 4 - Example chapter 11
+
+Body for contents entry 11. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 5 - Example chapter 12
+
+Body for contents entry 12. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 6 - Example chapter 13
+
+Body for contents entry 13. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 7 - Example chapter 14
+
+Body for contents entry 14. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 8 - Example chapter 15
+
+Body for contents entry 15. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 9 - Example chapter 16
+
+Body for contents entry 16. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 10 - Example chapter 17
+
+Body for contents entry 17. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 11 - Comms Tower A and B
+
+Body for contents entry 18. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 13 - Snowfield
+
+Body for contents entry 19. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Walkthrough - Disc 2
+
+Body for contents entry 20. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 14 - Example chapter 21
+
+Body for contents entry 21. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 15 - Example chapter 22
+
+Body for contents entry 22. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 16 - Example chapter 23
+
+Body for contents entry 23. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+Part 17 - Example chapter 24
+
+Body for contents entry 24. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+Part 18 - Example chapter 25
+
+Body for contents entry 25. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+26. Example chapter 26
+
+Body for contents entry 26. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+27. Example chapter 27
+
+Body for contents entry 27. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+28. Example challenge!
+
+Body for contents entry 28. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+29. Example chapter 29
+
+Body for contents entry 29. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+30. Example chapter 30
+
+Body for contents entry 30. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+31. Example chapter 31
+
+Body for contents entry 31. Keep this paragraph available to the reader
+and preserve every sentence when building its navigation destination.
+
+
+Part 99 - This is not listed as a section
+Keep this unmatched line as ordinary prose.
+
+1) Example photograph location
+This list item must not turn into the first chapter.

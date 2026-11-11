@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   BackHandler,
   Image,
@@ -144,6 +145,9 @@ function WalkthroughApp() {
     [artMessage, setArtMessage] = useState(""),
     [focus, setFocus] = useState(0),
     [tocMode, setTocMode] = useState("headings"),
+    [pageNavigator, setPageNavigator] = useState(false),
+    [pageDraft, setPageDraft] = useState("1"),
+    [pageError, setPageError] = useState(""),
     [art, setArt] = useState<any[]>([]),
     [zoom, setZoom] = useState<string>(),
     [fixed, setFixed] = useState<string>(),
@@ -158,6 +162,7 @@ function WalkthroughApp() {
   );
   const brandFontSize = windowWidth < 360 ? 24 : 30;
   const selectedTheme = themes[themeId] || theme;
+  const pageRailWidth = useRef(0);
   const browser = useRef<WebView>(null);
   const browserImportInFlight = useRef(false);
   const saveImportInFlight = useRef(false);
@@ -227,6 +232,7 @@ function WalkthroughApp() {
     setShowImport(false);
     setShowSettings(false);
     setReadingPosition(undefined);
+    setPageNavigator(false);
     const a = resolveAnchor(
       g,
       row.position ? JSON.parse(row.position) : undefined,
@@ -418,6 +424,11 @@ function WalkthroughApp() {
     }
   }
   const back = () => {
+    if (pageNavigator) {
+      Keyboard.dismiss();
+      setPageNavigator(false);
+      return true;
+    }
     if (importProgress) {
       if (importProgress.phase !== "saving") abort.current?.abort();
       return true;
@@ -454,6 +465,24 @@ function WalkthroughApp() {
       ({ action }: { action: string }) => {
         if (importProgress) {
           if (action === "back") back();
+          return;
+        }
+        if (pageNavigator) {
+          if (action === "back") back();
+          else if (action === "confirm") goToPage();
+          else if (["next", "previous", "left", "right"].includes(action))
+            setPageDraft((value) =>
+              String(
+                Math.max(
+                  1,
+                  Math.min(
+                    readingPosition?.pages || 1,
+                    (Number(value) || 1) +
+                      (["next", "right"].includes(action) ? 1 : -1),
+                  ),
+                ),
+              ),
+            );
           return;
         }
         if (action === "back") back();
@@ -1014,15 +1043,50 @@ function WalkthroughApp() {
     setPanel("toc");
     setFocus(0);
   };
+  const openPageNavigator = () => {
+    if (!readingPosition) return;
+    setPageDraft(String(readingPosition.page));
+    setPageError("");
+    setPageNavigator(true);
+  };
+  function goToPage(value = pageDraft) {
+    const total = readingPosition?.pages || 1;
+    const target = Number(value);
+    if (
+      !/^\d+$/.test(value) ||
+      !Number.isSafeInteger(target) ||
+      target < 1 ||
+      target > total
+    ) {
+      const message = `Enter a page from 1 to ${total}`;
+      setPageError(message);
+      AccessibilityInfo.announceForAccessibility(message);
+      return;
+    }
+    Keyboard.dismiss();
+    setNotice("");
+    sendCommand({ type: "page", page: target });
+    setPageNavigator(false);
+  }
+  function pageAtRail(x: number) {
+    if (!pageRailWidth.current) return Number(pageDraft) || 1;
+    return Math.max(
+      1,
+      Math.min(
+        readingPosition?.pages || 1,
+        1 +
+          Math.round(
+            (x / pageRailWidth.current) * ((readingPosition?.pages || 1) - 1),
+          ),
+      ),
+    );
+  }
   const sections = trail
     .filter((t: any) => t.level > 0)
     .map((t: any) => t.title);
-  const breadcrumbLabel = [
-    ...(sections.length ? sections : ["Beginning of guide"]),
-    readingPosition
-      ? `Page ${readingPosition.page} of ${readingPosition.pages}`
-      : "Laying out pages…",
-  ].join(" › ");
+  const breadcrumbLabel = (
+    sections.length ? sections : ["Beginning of guide"]
+  ).join(" › ");
   const source = useMemo(
     () =>
       guide && anchor && !panel && !zoom && !fixed
@@ -1246,6 +1310,18 @@ function WalkthroughApp() {
               compact: true,
               accessibilityLabel: "Open table of contents",
             })}
+            {readingPosition && !panel
+              ? button(
+                  `Page ${readingPosition.page} / ${readingPosition.pages}`,
+                  openPageNavigator,
+                  undefined,
+                  undefined,
+                  {
+                    toolbar: true,
+                    accessibilityLabel: `Jump to page. Page ${readingPosition.page} of ${readingPosition.pages}`,
+                  },
+                )
+              : null}
           </View>
           {panel ? (
             <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
@@ -1258,6 +1334,12 @@ function WalkthroughApp() {
                   })}
                   {button("Search", () => setPanel("search"))}
                   {button("Table of Contents", openContents)}
+                  {readingPosition
+                    ? button("Jump to page", () => {
+                        setPanel("");
+                        openPageNavigator();
+                      })
+                    : null}
                   {button("Reading Settings", () => setPanel("settings"))}
                   {button("Images and maps", () => setPanel("images"))}
                   {button("Artwork", () => {
@@ -1658,6 +1740,164 @@ function WalkthroughApp() {
           </ScrollView>
         </View>
       )}
+      {pageNavigator && guide && readingPosition ? (
+        <Modal
+          transparent
+          visible
+          animationType="fade"
+          onRequestClose={() => {
+            Keyboard.dismiss();
+            setPageNavigator(false);
+          }}
+        >
+          <KeyboardAvoidingView
+            behavior="padding"
+            style={{ flex: 1, backgroundColor: "#0009" }}
+          >
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <View
+                accessibilityViewIsModal
+                style={{
+                  backgroundColor: colors.surface,
+                  borderColor: colors.accent,
+                  borderWidth: 2,
+                  borderRadius: selectedTheme.radius,
+                  padding: 12,
+                }}
+              >
+                {heading("Jump to page")}
+                {text(`Page ${pageDraft || "—"} of ${readingPosition.pages}`)}
+                {text(
+                  "Drag across the bar and release to jump, or enter a page number.",
+                )}
+                <View
+                  accessibilityRole="adjustable"
+                  accessibilityLabel="Page scrubber"
+                  accessibilityValue={{
+                    min: 1,
+                    max: readingPosition.pages,
+                    now: Math.max(
+                      1,
+                      Math.min(readingPosition.pages, Number(pageDraft) || 1),
+                    ),
+                  }}
+                  accessibilityActions={[
+                    { name: "increment" },
+                    { name: "decrement" },
+                  ]}
+                  onAccessibilityAction={(event) =>
+                    setPageDraft((value) =>
+                      String(
+                        Math.max(
+                          1,
+                          Math.min(
+                            readingPosition.pages,
+                            (Number(value) || 1) +
+                              (event.nativeEvent.actionName === "increment"
+                                ? 1
+                                : -1),
+                          ),
+                        ),
+                      ),
+                    )
+                  }
+                  onLayout={(event) => {
+                    pageRailWidth.current = event.nativeEvent.layout.width;
+                  }}
+                  onStartShouldSetResponder={() => true}
+                  onMoveShouldSetResponder={() => true}
+                  onResponderGrant={(event) =>
+                    setPageDraft(
+                      String(pageAtRail(event.nativeEvent.locationX)),
+                    )
+                  }
+                  onResponderMove={(event) =>
+                    setPageDraft(
+                      String(pageAtRail(event.nativeEvent.locationX)),
+                    )
+                  }
+                  onResponderRelease={(event) =>
+                    goToPage(String(pageAtRail(event.nativeEvent.locationX)))
+                  }
+                  style={{
+                    height: 56,
+                    justifyContent: "center",
+                    marginHorizontal: 10,
+                  }}
+                >
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: colors.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: colors.accent,
+                        width: `${readingPosition.pages > 1 ? ((Math.max(1, Math.min(readingPosition.pages, Number(pageDraft) || 1)) - 1) / (readingPosition.pages - 1)) * 100 : 0}%`,
+                      }}
+                    />
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: -8,
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: colors.accent,
+                        left: `${readingPosition.pages > 1 ? ((Math.max(1, Math.min(readingPosition.pages, Number(pageDraft) || 1)) - 1) / (readingPosition.pages - 1)) * 100 : 0}%`,
+                        marginLeft: -12,
+                      }}
+                    />
+                  </View>
+                </View>
+                <TextInput
+                  accessibilityLabel="Page number"
+                  value={pageDraft}
+                  onChangeText={(value) => {
+                    setPageDraft(value);
+                    setPageError("");
+                  }}
+                  keyboardType="number-pad"
+                  returnKeyType="go"
+                  onSubmitEditing={() => goToPage()}
+                  style={{
+                    color: colors.text,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    padding: 14,
+                    margin: 8,
+                  }}
+                />
+                {pageError ? (
+                  <Text
+                    accessibilityLiveRegion="polite"
+                    style={{ color: colors.text, padding: 10 }}
+                  >
+                    {pageError}
+                  </Text>
+                ) : null}
+                {button("Go to page", () => goToPage())}
+                {button("Cancel", () => {
+                  Keyboard.dismiss();
+                  setPageNavigator(false);
+                })}
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Modal>
+      ) : null}
       {importProgress ? (
         <Modal
           visible

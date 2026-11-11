@@ -82,6 +82,7 @@ function appHarness(options = {}) {
     [
       "Image",
       "ActivityIndicator",
+      "KeyboardAvoidingView",
       "Modal",
       "Pressable",
       "ScrollView",
@@ -867,5 +868,92 @@ test("all console themes can be selected, persist, and supply their palette to t
   assert.equal(
     restoredRoot.props.style.backgroundColor,
     themes["read-box"].dark.background,
+  );
+});
+test("page navigator scrubs once on release, validates direct jumps, and keeps reader HTML mounted", async () => {
+  const h = appHarness();
+  let root = await h.boot(),
+    commands = [];
+  let view = h.walk(root).find((n) => n.type === "WebView");
+  view.props.ref.current = {
+    postMessage: (value) => commands.push(JSON.parse(value)),
+  };
+  view.props.onMessage({
+    nativeEvent: {
+      data: JSON.stringify({
+        type: "position",
+        fileId: "local",
+        blockId: h.guide.files[0].blocks[0].id,
+        offset: 0,
+        page: 4,
+        pages: 120,
+      }),
+    },
+  });
+  root = h.render();
+  const builds = h.htmlBuilds();
+  h.button(root, "Jump to page. Page 4 of 120").props.onPress();
+  root = h.render();
+  let modal = h.walk(root).find((n) => n.type === "Modal" && n.props.visible),
+    rail = h
+      .walk(modal)
+      .find((n) => n.props.accessibilityLabel === "Page scrubber");
+  rail.props.onLayout({ nativeEvent: { layout: { width: 200 } } });
+  rail.props.onResponderGrant({ nativeEvent: { locationX: 0 } });
+  rail.props.onResponderMove({ nativeEvent: { locationX: 150 } });
+  root = h.render();
+  assert.equal(commands.length, 0);
+  assert.equal(h.htmlBuilds(), builds);
+  modal = h.walk(root).find((n) => n.type === "Modal" && n.props.visible);
+  assert.ok(JSON.stringify(modal).includes("Page 90 of 120"));
+  rail = h
+    .walk(modal)
+    .find((n) => n.props.accessibilityLabel === "Page scrubber");
+  rail.props.onResponderRelease({ nativeEvent: { locationX: 150 } });
+  root = h.render();
+  assert.equal(commands.length, 1);
+  assert.equal(commands[0].type, "page");
+  assert.equal(commands[0].page, 90);
+  assert.equal(h.htmlBuilds(), builds);
+  assert.equal(
+    h.walk(root).some((n) => n.type === "Modal" && n.props.visible),
+    false,
+  );
+  h.button(root, "Jump to page. Page 4 of 120").props.onPress();
+  root = h.render();
+  let field = h
+    .walk(root)
+    .find(
+      (n) =>
+        n.type === "TextInput" && n.props.accessibilityLabel === "Page number",
+    );
+  field.props.onChangeText("999");
+  root = h.render();
+  h.button(root, "Go to page").props.onPress();
+  root = h.render();
+  assert.ok(JSON.stringify(root).includes("Enter a page from 1 to 120"));
+  assert.equal(commands.length, 1);
+  field = h
+    .walk(root)
+    .find(
+      (n) =>
+        n.type === "TextInput" && n.props.accessibilityLabel === "Page number",
+    );
+  field.props.onChangeText("120");
+  root = h.render();
+  h.button(root, "Go to page").props.onPress();
+  root = h.render();
+  assert.equal(commands.length, 2);
+  assert.equal(commands[1].page, 120);
+  assert.ok(commands[1].commandId > commands[0].commandId);
+  assert.equal(h.htmlBuilds(), builds);
+  h.button(root, "Jump to page. Page 4 of 120").props.onPress();
+  root = h.render();
+  h.button(root, "Cancel").props.onPress();
+  root = h.render();
+  assert.equal(commands.length, 2);
+  assert.equal(
+    h.walk(root).some((n) => n.type === "Modal" && n.props.visible),
+    false,
   );
 });

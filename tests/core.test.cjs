@@ -69,3 +69,9 @@ test('guide pagination keeps one view, normalizes page zero, and permits an expl
  assert.equal(c.guidePageURL('#intro',root+'?single=1'),root+'?single=1');assert.equal(c.guidePageURL('?page=1',root+'?single=1'),undefined);
  assert.equal(c.guidePageURL('?single=1','https://example.org/guide'),'https://example.org/guide?single=1');
 });
+test('numbered contents resolve differently numbered body parts, disc headings and missing heading whitespace',()=>{
+ const text=require('node:fs').readFileSync('tests/guide-fixtures/mgs-heading-style.txt','utf8');const g=c.makeGuide('Numbered parts',[{id:'one',name:'Guide',text}]),entries=g.toc.filter(t=>t.level>0);
+ assert.equal(entries.length,31);assert.equal(entries.filter(t=>t.level===2).length,17);assert.deepEqual(entries.map(t=>Number(t.title.match(/^\d+/)[0])),Array.from({length:31},(_,i)=>i+1));assert.ok(entries.some(t=>t.title==='7. Walkthrough - Disc 1'));assert.ok(entries.some(t=>t.title==='18. Comms Tower A & B'));assert.ok(entries.some(t=>t.title==='19. Snow Field'));
+ for(let n=1;n<=31;n++){const b=g.files[0].blocks.find(b=>b.id===entries[n-1].blockId),i=g.files[0].blocks.indexOf(b);assert.equal(b.kind,'heading');assert.ok(g.files[0].blocks[i+1].text.startsWith('Body for contents entry '+n+'.'));}
+ assert.equal(c.search(g,'Keep this paragraph available').length,31);assert.ok(g.files[0].blocks.some(b=>b.text.includes('Part 99 -')));
+});

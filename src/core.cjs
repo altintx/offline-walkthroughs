@@ -160,6 +160,64 @@ function plainBlocks(input) {
       numberedBlocks.push({ kind: "heading", text: title, level }) - 1;
     sourceLines[i] = `\uE000layout-${index}\uE001`;
   };
+  // A numbered contents list may switch to "Part N - Title" in the body.
+  // Resolve by title, since the part numbers need not match contents numbers.
+  const chapterKey = (value) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/^the\s+/, "")
+      .replace(/[^a-z0-9]/g, "");
+  for (let start = 0; start < sourceLines.length; start++) {
+    if (!/^\s*(?:table\s+of\s+)?contents\s*$/i.test(sourceLines[start]))
+      continue;
+    const entries = [];
+    let end = start;
+    for (let i = start + 1; i < sourceLines.length; i++) {
+      if (!sourceLines[i].trim()) continue;
+      const entry = sourceLines[i].match(
+        /^\s*(\d+)[.)]\s*([A-Za-z].{0,119})\s*$/,
+      );
+      if (!entry || Number(entry[1]) !== entries.length + 1) break;
+      entries.push({ number: Number(entry[1]), title: entry[2].trim() });
+      end = i;
+    }
+    if (entries.length < 3) continue;
+    for (let i = end + 1; i < sourceLines.length; i++) {
+      const line = sourceLines[i].trim(),
+        numeric = line.match(/^(\d+)[.)]\s*([A-Za-z].{0,119})$/),
+        part = line.match(/^Part\s+\d+\s*[-–—:]\s*(.{1,120})$/i);
+      let entry,
+        level = 1;
+      if (numeric)
+        entry = entries.find(
+          (e) =>
+            e.number === Number(numeric[1]) &&
+            chapterKey(e.title) === chapterKey(numeric[2]),
+        );
+      else if (part) {
+        entry = entries.find(
+          (e) => chapterKey(e.title) === chapterKey(part[1]),
+        );
+        level = 2;
+      } else {
+        entry = entries.find((e) => chapterKey(e.title) === chapterKey(line));
+        // A first-disc heading may omit its disc label in the body.
+        if (!entry)
+          entry = entries.find(
+            (e) =>
+              /^(.+?)\s*[-–—:]\s*Disc\s+1$/i.test(e.title) &&
+              chapterKey(e.title.replace(/\s*[-–—:]\s*Disc\s+1$/i, "")) ===
+                chapterKey(line),
+          );
+      }
+      if (!entry) continue;
+      markHeading(i, `${entry.number}. ${entry.title}`, level);
+      numberedBlocks.at(-1).sourceIds = [`contents-${entry.number}`];
+      sourceLines[i] = "\n" + sourceLines[i] + "\n";
+    }
+    break;
+  }
   // Tabular contents may give lettered section numbers and a separate find
   // code. Match the banner's title and nearby code, never a prose reference.
   const codedContents = new Map();
